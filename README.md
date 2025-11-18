@@ -30,6 +30,15 @@ A hybrid metadata extraction system that combines web scraping with Groq's Brows
 - Temporal resolution (daily, monthly, yearly)
 - Reference periods and data type (historical/real-time)
 
+### NEW: Advanced Browser Automation
+- **Parallel Browser Control**: Launch up to 10 browsers simultaneously
+- **Deep Web Research**: Navigate through multiple pages and documentation
+- **Comprehensive Analysis**: Gather evidence from multiple sources
+- **Intelligent Reasoning**: See how the system navigates and makes decisions
+- **Multiple Models**: Support for moonshotai/kimi-k2-instruct-0905, groq/compound-mini, groq/compound
+
+> See [BROWSER_AUTOMATION.md](BROWSER_AUTOMATION.md) for detailed documentation on the browser automation feature.
+
 ## Installation
 
 1. Clone the repository:
@@ -66,6 +75,33 @@ Features:
 - Configure max license links to follow
 - View results with clickable markdown links
 - Export raw JSON output
+
+### Browser Automation CLI (NEW)
+
+Use advanced browser automation for comprehensive metadata extraction:
+
+```bash
+# Extract all metadata with browser automation
+python browser_automation_extractor.py https://example.com/dataset
+
+# Extract specific metadata type
+python browser_automation_extractor.py https://example.com/dataset --mode=license
+python browser_automation_extractor.py https://example.com/dataset --mode=place
+python browser_automation_extractor.py https://example.com/dataset --mode=temporal
+
+# Use different models
+python browser_automation_extractor.py https://example.com/dataset --model=groq/compound
+python browser_automation_extractor.py https://example.com/dataset --model=groq/compound-mini
+```
+
+Features:
+- Launches up to 10 browsers simultaneously
+- Gathers information from multiple sources
+- Shows reasoning process and navigation decisions
+- Saves results to JSON with timestamp
+- More comprehensive than standard extraction
+
+See [BROWSER_AUTOMATION.md](BROWSER_AUTOMATION.md) for complete documentation.
 
 ### Python API
 

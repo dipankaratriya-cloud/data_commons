@@ -151,15 +151,28 @@ def save_results(result: dict, url: str, mode: str, output_file: str = None):
         safe_url = url.replace("https://", "").replace("http://", "").replace("/", "_")[:50]
         output_file = f"metadata_extraction_{safe_url}_{timestamp}.json"
 
+    # Create a copy without non-serializable objects
+    result_copy = {
+        "success": result.get("success"),
+        "content": result.get("content"),
+        "reasoning": result.get("reasoning"),
+        "executed_tools": result.get("executed_tools"),
+        "error": result.get("error"),
+        "license_data": result.get("license_data"),
+        "place_data": result.get("place_data"),
+        "temporal_data": result.get("temporal_data"),
+        "parsed_metadata": result.get("parsed_metadata")
+    }
+
     output_data = {
         "url": url,
         "mode": mode,
         "timestamp": datetime.now().isoformat(),
-        "result": result
+        "result": result_copy
     }
 
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(output_data, f, indent=2, ensure_ascii=False)
+        json.dump(output_data, f, indent=2, ensure_ascii=False, default=str)
 
     print(f"\n💾 Results saved to: {output_file}")
 
