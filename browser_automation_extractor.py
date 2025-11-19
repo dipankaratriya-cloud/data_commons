@@ -75,9 +75,17 @@ def format_license_output(result: dict):
         print("-" * 80)
         for i, tool in enumerate(result["executed_tools"], 1):
             print(f"\nSession {i}:")
-            print(f"  Type: {tool.get('type', 'unknown')}")
-            if tool.get('output'):
-                output_preview = tool['output'][:200]
+            # Handle both dict and object types
+            if hasattr(tool, 'type'):
+                tool_type = getattr(tool, 'type', 'unknown')
+                tool_output = getattr(tool, 'output', None)
+            else:
+                tool_type = tool.get('type', 'unknown') if isinstance(tool, dict) else 'unknown'
+                tool_output = tool.get('output') if isinstance(tool, dict) else None
+
+            print(f"  Type: {tool_type}")
+            if tool_output:
+                output_preview = str(tool_output)[:200]
                 print(f"  Output: {output_preview}...")
         print()
 
@@ -140,7 +148,12 @@ def format_all_metadata(result: dict):
         print("-" * 80)
         print(f"Total browser sessions: {len(result['executed_tools'])}")
         for i, tool in enumerate(result["executed_tools"], 1):
-            print(f"  Session {i}: {tool.get('type', 'unknown')}")
+            # Handle both dict and object types
+            if hasattr(tool, 'type'):
+                tool_type = getattr(tool, 'type', 'unknown')
+            else:
+                tool_type = tool.get('type', 'unknown') if isinstance(tool, dict) else 'unknown'
+            print(f"  Session {i}: {tool_type}")
         print()
 
 
@@ -151,12 +164,31 @@ def save_results(result: dict, url: str, mode: str, output_file: str = None):
         safe_url = url.replace("https://", "").replace("http://", "").replace("/", "_")[:50]
         output_file = f"metadata_extraction_{safe_url}_{timestamp}.json"
 
+    # Convert executed_tools to serializable format
+    executed_tools = result.get("executed_tools", [])
+    serializable_tools = []
+
+    if executed_tools:
+        for tool in executed_tools:
+            if hasattr(tool, '__dict__'):
+                # Convert object to dict
+                tool_dict = {
+                    'type': getattr(tool, 'type', None),
+                    'output': str(getattr(tool, 'output', ''))[:1000] if getattr(tool, 'output', None) else None,
+                    'name': getattr(tool, 'name', None),
+                }
+                serializable_tools.append(tool_dict)
+            elif isinstance(tool, dict):
+                serializable_tools.append(tool)
+            else:
+                serializable_tools.append({'type': str(type(tool)), 'value': str(tool)})
+
     # Create a copy without non-serializable objects
     result_copy = {
         "success": result.get("success"),
         "content": result.get("content"),
         "reasoning": result.get("reasoning"),
-        "executed_tools": result.get("executed_tools"),
+        "executed_tools": serializable_tools,
         "error": result.get("error"),
         "license_data": result.get("license_data"),
         "place_data": result.get("place_data"),

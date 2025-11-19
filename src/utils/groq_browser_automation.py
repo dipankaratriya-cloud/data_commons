@@ -10,28 +10,32 @@ class GroqBrowserAutomation:
     for comprehensive web research and metadata extraction.
     """
 
-    def __init__(self, api_key: str, model: str = "moonshotai/kimi-k2-instruct-0905"):
+    def __init__(self, api_key: str, model: str = "moonshotai/kimi-k2-instruct-0905", timeout: int = 120):
         """Initialize the browser automation client.
 
         Args:
             api_key: Groq API key
             model: Model to use (default: moonshotai/kimi-k2-instruct-0905,
                    or groq/compound, groq/compound-mini)
+            timeout: Request timeout in seconds (default: 120)
         """
         self.client = Groq(
             api_key=api_key,
+            timeout=timeout,
             default_headers={
                 "Groq-Model-Version": "latest"
             }
         )
         self.model = model
+        self.timeout = timeout
 
-    def extract_with_automation(self, query: str, temperature: float = 0.1) -> dict:
+    def extract_with_automation(self, query: str, temperature: float = 0.1, max_retries: int = 2) -> dict:
         """Extract information using browser automation.
 
         Args:
             query: The question or extraction prompt
             temperature: Model temperature (0.0-1.0)
+            max_retries: Maximum number of retry attempts (default: 2)
 
         Returns:
             dict containing:
@@ -40,47 +44,77 @@ class GroqBrowserAutomation:
                 - executed_tools: Details of browser automation sessions
                 - raw_response: Full response object
         """
-        try:
-            chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": query,
+        import time
+
+        last_error = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                chat_completion = self.client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": query,
+                        }
+                    ],
+                    model=self.model,
+                    temperature=temperature,
+                    compound_custom={
+                        "tools": {
+                            "enabled_tools": ["browser_automation", "web_search"]
+                        }
                     }
-                ],
-                model=self.model,
-                temperature=temperature,
-                compound_custom={
-                    "tools": {
-                        "enabled_tools": ["browser_automation", "web_search"]
-                    }
+                )
+
+                message = chat_completion.choices[0].message
+
+                return {
+                    "success": True,
+                    "content": message.content,
+                    "reasoning": getattr(message, 'reasoning', None),
+                    "executed_tools": getattr(message, 'executed_tools', []),
+                    "raw_response": message
                 }
-            )
 
-            message = chat_completion.choices[0].message
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
 
-            return {
-                "success": True,
-                "content": message.content,
-                "reasoning": getattr(message, 'reasoning', None),
-                "executed_tools": getattr(message, 'executed_tools', []),
-                "raw_response": message
-            }
+                # Don't retry on certain errors
+                if any(x in error_str for x in ["api key", "authentication", "unauthorized", "forbidden"]):
+                    return {
+                        "success": False,
+                        "error": f"Authentication error: {str(e)}",
+                        "content": None,
+                        "reasoning": None,
+                        "executed_tools": []
+                    }
 
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "content": None,
-                "reasoning": None,
-                "executed_tools": []
-            }
+                # Retry on timeout or temporary errors
+                if attempt < max_retries:
+                    if any(x in error_str for x in ["timeout", "timed out", "connection", "temporary"]):
+                        wait_time = (attempt + 1) * 2  # Exponential backoff: 2s, 4s, 6s
+                        time.sleep(wait_time)
+                        continue
 
-    def extract_license_metadata(self, url: str) -> dict:
+                # If we've exhausted retries or it's a non-retryable error
+                break
+
+        # If all retries failed
+        return {
+            "success": False,
+            "error": str(last_error),
+            "content": None,
+            "reasoning": None,
+            "executed_tools": []
+        }
+
+    def extract_license_metadata(self, url: str, max_retries: int = 2) -> dict:
         """Extract license metadata using browser automation.
 
         Args:
             url: Dataset or website URL
+            max_retries: Maximum retry attempts (default: 2)
 
         Returns:
             dict with license information
@@ -97,7 +131,7 @@ Please provide:
 Search through multiple pages if needed to find accurate license information.
 Return the information in a structured format."""
 
-        result = self.extract_with_automation(query)
+        result = self.extract_with_automation(query, max_retries=max_retries)
 
         if result["success"]:
             # Parse the content to structure it better
@@ -105,11 +139,12 @@ Return the information in a structured format."""
 
         return result
 
-    def extract_place_metadata(self, url: str) -> dict:
+    def extract_place_metadata(self, url: str, max_retries: int = 2) -> dict:
         """Extract geographic/place metadata using browser automation.
 
         Args:
             url: Dataset or website URL
+            max_retries: Maximum retry attempts (default: 2)
 
         Returns:
             dict with place/geographic information
@@ -126,18 +161,19 @@ Please provide:
 Search through multiple pages including documentation, metadata, and data dictionaries.
 Return the information in a structured format."""
 
-        result = self.extract_with_automation(query)
+        result = self.extract_with_automation(query, max_retries=max_retries)
 
         if result["success"]:
             result["place_data"] = self._parse_place_content(result["content"])
 
         return result
 
-    def extract_temporal_metadata(self, url: str) -> dict:
+    def extract_temporal_metadata(self, url: str, max_retries: int = 2) -> dict:
         """Extract temporal metadata using browser automation.
 
         Args:
             url: Dataset or website URL
+            max_retries: Maximum retry attempts (default: 2)
 
         Returns:
             dict with temporal/time-based information
@@ -155,14 +191,14 @@ Please provide:
 Search through multiple pages including documentation and metadata sections.
 Return the information in a structured format."""
 
-        result = self.extract_with_automation(query)
+        result = self.extract_with_automation(query, max_retries=max_retries)
 
         if result["success"]:
             result["temporal_data"] = self._parse_temporal_content(result["content"])
 
         return result
 
-    def extract_all_metadata(self, url: str) -> dict:
+    def extract_all_metadata(self, url: str, max_retries: int = 2) -> dict:
         """Extract all metadata types using a single browser automation query.
 
         This is more efficient than calling individual extractors as it uses
@@ -170,6 +206,7 @@ Return the information in a structured format."""
 
         Args:
             url: Dataset or website URL
+            max_retries: Maximum retry attempts (default: 2)
 
         Returns:
             dict with all metadata types
@@ -204,7 +241,7 @@ Use your browser automation capabilities to search through multiple pages,
 documentation, metadata sections, and related links to provide comprehensive
 and accurate information. Return the information in a well-structured format."""
 
-        result = self.extract_with_automation(query)
+        result = self.extract_with_automation(query, max_retries=max_retries)
 
         if result["success"]:
             result["parsed_metadata"] = {
