@@ -239,7 +239,8 @@ def main():
     """Main Streamlit app."""
     st.set_page_config(
         page_title="Metadata Extractor - Browser Automation",
-        layout="wide"
+        layout="wide",
+        initial_sidebar_state="collapsed"
     )
 
     # Custom CSS for clean light theme
