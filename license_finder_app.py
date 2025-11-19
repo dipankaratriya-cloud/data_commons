@@ -13,11 +13,13 @@ import streamlit as st
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 from src.utils.groq_browser_automation import GroqBrowserAutomation
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from .env file in script directory
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 def format_comprehensive_display(result: dict):
@@ -410,14 +412,10 @@ def main():
 
         # API Key
         api_key = os.getenv('GROQ_API_KEY')
-        if not api_key:
-            api_key = st.text_input(
-                "Groq API Key",
-                type="password",
-                help="Enter your Groq API key or set GROQ_API_KEY in .env file"
-            )
+        if api_key:
+            st.success(f"API Key loaded from environment (...{api_key[-4:]})")
         else:
-            st.success("API Key loaded from environment")
+            st.error("No API key found in .env file")
 
         # Use default values - increased for better reliability
         model = "groq/compound"  # Use compound model for best results
@@ -505,12 +503,12 @@ def main():
                 st.session_state.selected_url = "https://data.gouv.fr"
                 st.rerun()
             if st.button("Norway Statistics", key="ex2", use_container_width=True):
-                st.session_state.selected_url = "https://www.ssb.no/en/statbank/table/06913"
+                st.session_state.selected_url = "https://www.ssb.no"
                 st.rerun()
 
         with col2:
             if st.button("Canada Statistics", key="ex3", use_container_width=True):
-                st.session_state.selected_url = "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810000101"
+                st.session_state.selected_url = "https://www.statcan.gc.ca"
                 st.rerun()
             if st.button("GitHub Repository", key="ex4", use_container_width=True):
                 st.session_state.selected_url = "https://github.com/torvalds/linux"
@@ -598,8 +596,96 @@ def main():
                 st.warning(f"**Error Details:** {error_msg}")
                 st.caption("This helps us understand what went wrong")
 
+                # Rate limit errors (429) - HANDLE FIRST
+                if "429" in error_msg or "rate limit" in error_msg.lower() or "rate_limit_exceeded" in error_msg.lower():
+                    st.markdown("""
+                    **API Rate Limit Reached**
+
+                    Your Groq API key has reached its usage limit.
+                    """)
+
+                    # Extract wait time if available
+                    import re
+                    wait_match = re.search(r'try again in ([\d.]+)s', error_msg)
+                    if wait_match:
+                        wait_time = float(wait_match.group(1))
+                        st.warning(f"Wait time: **{wait_time:.1f} seconds** before the limit resets")
+
+                    st.markdown("""
+                    **Solutions:**
+
+                    **Option 1: Wait for Rate Limit Reset (Recommended)**
+                    - Wait for the time shown above
+                    - Click the retry button below
+
+                    **Option 2: Try Simpler URLs**
+                    - Use main website URLs (not table views)
+                    - Simpler pages use fewer tokens
+
+                    **Option 3: Upgrade Your Plan**
+                    - Visit: https://console.groq.com/settings/billing
+                    - Upgrade to Dev Tier for higher limits
+                    """)
+
+                    # Show usage stats
+                    usage_match = re.search(r'Limit (\d+), Used (\d+), Requested (\d+)', error_msg)
+                    if usage_match:
+                        limit = int(usage_match.group(1))
+                        used = int(usage_match.group(2))
+                        requested = int(usage_match.group(3))
+
+                        st.markdown("**Current Usage:**")
+                        usage_pct = (used / limit) * 100
+                        st.progress(usage_pct / 100)
+                        st.caption(f"Used: {used:,} / {limit:,} tokens ({usage_pct:.1f}%)")
+                        st.caption(f"Requested: {requested:,} tokens")
+
+                    # Auto-retry button
+                    if wait_match:
+                        wait_time = float(wait_match.group(1))
+                        st.markdown(f"**Auto-retry in {wait_time:.0f} seconds:**")
+
+                        col1, col2 = st.columns([2, 1])
+                        with col1:
+                            if st.button(f"⏱ Wait {wait_time:.0f}s and Retry", use_container_width=True, key="wait_retry"):
+                                import time
+                                with st.spinner(f"Waiting {wait_time:.0f} seconds..."):
+                                    time.sleep(wait_time + 1)  # Add 1 second buffer
+                                st.rerun()
+                        with col2:
+                            if st.button("🔄 Retry Now", use_container_width=True, key="retry_now"):
+                                st.rerun()
+
+                # Request too large errors (413)
+                elif "413" in error_msg or "too large" in error_msg.lower() or "request entity too large" in error_msg.lower():
+                    st.markdown("""
+                    **The page content is too large for the API to process.**
+
+                    This happens with complex data tables or pages with lots of content.
+
+                    **Solutions:**
+                    """)
+
+                    # Try to extract main URL
+                    if "/table/" in url or "/tableView" in url:
+                        # Extract base URL
+                        parts = url.split("/")
+                        main_url = "/".join(parts[:3])  # https://www.ssb.no
+                        st.markdown(f"""
+                        1. **Try the main website instead:**
+                        """)
+                        if st.button(f"Try {main_url}", use_container_width=True, key="try_main"):
+                            st.session_state.selected_url = main_url
+                            st.rerun()
+                    else:
+                        st.markdown("""
+                        1. **Try the homepage of the website**
+                        2. **Try a simpler URL** - Avoid specific table views or large data pages
+                        3. **Use the example URLs** - They're tested and work well
+                        """)
+
                 # Timeout errors
-                if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
                     st.markdown("""
                     **The extraction took too long (exceeded 3 minutes).**
 
