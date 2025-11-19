@@ -242,140 +242,145 @@ def main():
         layout="wide"
     )
 
-    # Custom CSS for professional dark theme
+    # Custom CSS for professional light theme
     st.markdown("""
         <style>
         /* Main background and text */
         .stApp {
-            background-color: #0e1117;
+            background-color: #ffffff;
         }
 
-        /* Reduce bright colors on info/success/warning/error boxes */
+        /* Alert boxes */
         .stAlert {
-            background-color: rgba(50, 50, 60, 0.4) !important;
-            border-left: 3px solid #4a5568 !important;
-            color: #d1d5db !important;
+            background-color: #f8f9fa !important;
+            border-left: 3px solid #cbd5e0 !important;
+            color: #2d3748 !important;
         }
 
-        /* Success messages - dark green */
+        /* Success messages - light green */
         div[data-baseweb="notification"][kind="success"] {
-            background-color: rgba(16, 55, 35, 0.6) !important;
-            border-left: 3px solid #2d5f4a !important;
+            background-color: #e6f7ed !important;
+            border-left: 3px solid #38a169 !important;
+            color: #22543d !important;
         }
 
-        /* Error messages - dark red */
+        /* Error messages - light red */
         div[data-baseweb="notification"][kind="error"] {
-            background-color: rgba(55, 20, 20, 0.6) !important;
-            border-left: 3px solid #5f2d2d !important;
+            background-color: #fff5f5 !important;
+            border-left: 3px solid #e53e3e !important;
+            color: #742a2a !important;
         }
 
-        /* Warning messages - dark amber */
+        /* Warning messages - light amber */
         div[data-baseweb="notification"][kind="warning"] {
-            background-color: rgba(55, 45, 20, 0.6) !important;
-            border-left: 3px solid #5f4a2d !important;
+            background-color: #fffbeb !important;
+            border-left: 3px solid #f59e0b !important;
+            color: #78350f !important;
         }
 
-        /* Info messages - dark blue */
+        /* Info messages - light blue */
         div[data-baseweb="notification"][kind="info"] {
-            background-color: rgba(20, 35, 55, 0.6) !important;
-            border-left: 3px solid #2d3f5f !important;
+            background-color: #eff6ff !important;
+            border-left: 3px solid #3b82f6 !important;
+            color: #1e3a8a !important;
         }
 
-        /* Buttons - professional dark theme */
+        /* Buttons - professional light theme */
         .stButton > button {
-            background-color: #1f2937 !important;
-            color: #e5e7eb !important;
-            border: 1px solid #374151 !important;
+            background-color: #f7fafc !important;
+            color: #2d3748 !important;
+            border: 1px solid #cbd5e0 !important;
             font-weight: 500 !important;
         }
 
         .stButton > button:hover {
-            background-color: #374151 !important;
-            border: 1px solid #4b5563 !important;
+            background-color: #edf2f7 !important;
+            border: 1px solid #a0aec0 !important;
         }
 
         /* Primary button */
         .stButton > button[kind="primary"] {
-            background-color: #1e3a5f !important;
-            border: 1px solid #2d5f8d !important;
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            border: 1px solid #2563eb !important;
         }
 
         .stButton > button[kind="primary"]:hover {
-            background-color: #2d5f8d !important;
+            background-color: #2563eb !important;
         }
 
-        /* Tabs - darker theme */
+        /* Tabs - light theme */
         .stTabs [data-baseweb="tab-list"] {
-            background-color: #1a1d24 !important;
-            border-bottom: 1px solid #2d3748 !important;
+            background-color: #f7fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
         }
 
         .stTabs [data-baseweb="tab"] {
-            color: #9ca3af !important;
+            color: #718096 !important;
             background-color: transparent !important;
             border: none !important;
         }
 
         .stTabs [aria-selected="true"] {
-            color: #e5e7eb !important;
-            border-bottom: 2px solid #4a5568 !important;
+            color: #2d3748 !important;
+            border-bottom: 2px solid #3b82f6 !important;
         }
 
         /* Input fields */
         .stTextInput > div > div > input {
-            background-color: #1f2937 !important;
-            color: #e5e7eb !important;
-            border: 1px solid #374151 !important;
+            background-color: #ffffff !important;
+            color: #2d3748 !important;
+            border: 1px solid #cbd5e0 !important;
         }
 
         /* Sidebar */
         [data-testid="stSidebar"] {
-            background-color: #0a0d12 !important;
+            background-color: #f7fafc !important;
         }
 
         /* Metrics */
         [data-testid="stMetricValue"] {
-            color: #d1d5db !important;
+            color: #2d3748 !important;
         }
 
         /* Expanders */
         .streamlit-expanderHeader {
-            background-color: #1a1d24 !important;
-            color: #d1d5db !important;
-            border: 1px solid #2d3748 !important;
+            background-color: #f7fafc !important;
+            color: #2d3748 !important;
+            border: 1px solid #e2e8f0 !important;
         }
 
         /* Text areas */
         .stTextArea textarea {
-            background-color: #1f2937 !important;
-            color: #e5e7eb !important;
-            border: 1px solid #374151 !important;
+            background-color: #ffffff !important;
+            color: #2d3748 !important;
+            border: 1px solid #cbd5e0 !important;
         }
 
         /* Download button */
         .stDownloadButton > button {
-            background-color: #1e3a5f !important;
-            color: #e5e7eb !important;
-            border: 1px solid #2d5f8d !important;
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            border: 1px solid #2563eb !important;
         }
 
         .stDownloadButton > button:hover {
-            background-color: #2d5f8d !important;
+            background-color: #2563eb !important;
         }
 
         /* Headers */
         h1, h2, h3 {
-            color: #e5e7eb !important;
+            color: #1a202c !important;
         }
 
         /* Captions */
         .caption {
-            color: #9ca3af !important;
+            color: #718096 !important;
         }
 
         /* Dividers */
         hr {
-            border-color: #2d3748 !important;
+            border-color: #e2e8f0 !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -383,12 +388,12 @@ def main():
     # Header with icon
     st.markdown("""
         <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" stroke-width="2" style="margin-right: 12px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1a202c" stroke-width="2" style="margin-right: 12px;">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            <h1 style="margin: 0; color: #e5e7eb;">Metadata Extractor</h1>
+            <h1 style="margin: 0; color: #1a202c;">Metadata Extractor</h1>
         </div>
     """, unsafe_allow_html=True)
     st.caption("Extract license, place, and temporal metadata from any URL")
@@ -397,7 +402,7 @@ def main():
     with st.sidebar:
         st.markdown("""
             <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-right: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M12 1v6m0 6v6m-6-6h6m6 0h6"></path>
                     <path d="M12 1v6m0 6v6"></path>
@@ -406,7 +411,7 @@ def main():
                     <circle cx="12" cy="19" r="2"></circle>
                     <circle cx="12" cy="5" r="2"></circle>
                 </svg>
-                <h3 style="margin: 0; color: #e5e7eb;">Configuration</h3>
+                <h3 style="margin: 0; color: #2d3748;">Configuration</h3>
             </div>
         """, unsafe_allow_html=True)
 
@@ -427,11 +432,11 @@ def main():
         # URL History
         st.markdown("""
             <div style="display: flex; align-items: center; margin: 1.5rem 0 1rem 0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-right: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <h3 style="margin: 0; color: #e5e7eb;">Recent URLs</h3>
+                <h3 style="margin: 0; color: #2d3748;">Recent URLs</h3>
             </div>
         """, unsafe_allow_html=True)
         if 'url_history' not in st.session_state:
@@ -450,12 +455,12 @@ def main():
         # Help section
         st.markdown("""
             <div style="display: flex; align-items: center; margin: 1.5rem 0 0.5rem 0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-right: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
-                <h3 style="margin: 0; color: #e5e7eb; font-size: 0.9rem;">About</h3>
+                <h3 style="margin: 0; color: #2d3748; font-size: 0.9rem;">About</h3>
             </div>
         """, unsafe_allow_html=True)
 
@@ -477,11 +482,11 @@ def main():
     # URL input with icon
     st.markdown("""
         <div style="display: flex; align-items: center; margin-top: 1.5rem; margin-bottom: 0.3rem;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-right: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 6px;">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
             </svg>
-            <span style="color: #9ca3af; font-size: 0.875rem;">Enter URL</span>
+            <span style="color: #4a5568; font-size: 0.875rem;">Enter URL</span>
         </div>
     """, unsafe_allow_html=True)
 
