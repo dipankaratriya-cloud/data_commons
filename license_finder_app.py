@@ -242,167 +242,359 @@ def main():
         layout="wide"
     )
 
-    # Custom CSS for professional light theme
+    # Custom CSS for clean light theme
     st.markdown("""
         <style>
+        /* ===== COLOR PALETTE =====
+        Primary: #2563eb (Blue)
+        Background: #ffffff (White)
+        Text: #000000 (Black)
+        Border: #d1d5db (Gray 300)
+        */
+
         /* Main background and text */
         .stApp {
             background-color: #ffffff;
+            color: #000000;
         }
 
-        /* Alert boxes */
-        .stAlert {
-            background-color: #f8f9fa !important;
-            border-left: 3px solid #cbd5e0 !important;
-            color: #2d3748 !important;
+        /* All text elements */
+        p, span, div, label, li {
+            color: #000000 !important;
         }
 
-        /* Success messages - light green */
+        /* Strong/Bold text */
+        strong, b {
+            color: #000000 !important;
+            font-weight: 600 !important;
+        }
+
+        /* Links */
+        a {
+            color: #2563eb !important;
+            text-decoration: none !important;
+        }
+
+        a:hover {
+            color: #1d4ed8 !important;
+            text-decoration: underline !important;
+        }
+
+        /* Headers */
+        h1 {
+            color: #000000 !important;
+            font-weight: 700 !important;
+            font-size: 2.25rem !important;
+        }
+
+        h2 {
+            color: #000000 !important;
+            font-weight: 600 !important;
+            font-size: 1.875rem !important;
+        }
+
+        h3 {
+            color: #000000 !important;
+            font-weight: 600 !important;
+            font-size: 1.5rem !important;
+        }
+
+        h4, h5, h6 {
+            color: #000000 !important;
+            font-weight: 600 !important;
+        }
+
+        /* Captions and small text */
+        .stCaptionContainer, [data-testid="stCaptionContainer"] {
+            color: #000000 !important;
+        }
+
+        /* Code blocks */
+        code {
+            background-color: #f3f4f6 !important;
+            color: #000000 !important;
+            padding: 0.2rem 0.4rem !important;
+            border-radius: 0.25rem !important;
+            font-size: 0.875rem !important;
+        }
+
+        pre {
+            background-color: #f9fafb !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 1rem !important;
+        }
+
+        pre code {
+            background-color: transparent !important;
+            color: #000000 !important;
+        }
+
+        /* Success messages */
         div[data-baseweb="notification"][kind="success"] {
-            background-color: #e6f7ed !important;
-            border-left: 3px solid #38a169 !important;
-            color: #22543d !important;
+            background-color: #f0fdf4 !important;
+            border-left: 4px solid #22c55e !important;
         }
 
-        /* Error messages - light red */
+        div[data-baseweb="notification"][kind="success"] p,
+        div[data-baseweb="notification"][kind="success"] div {
+            color: #000000 !important;
+        }
+
+        /* Error messages */
         div[data-baseweb="notification"][kind="error"] {
-            background-color: #fff5f5 !important;
-            border-left: 3px solid #e53e3e !important;
-            color: #742a2a !important;
+            background-color: #fef2f2 !important;
+            border-left: 4px solid #ef4444 !important;
         }
 
-        /* Warning messages - light amber */
+        div[data-baseweb="notification"][kind="error"] p,
+        div[data-baseweb="notification"][kind="error"] div {
+            color: #000000 !important;
+        }
+
+        /* Warning messages */
         div[data-baseweb="notification"][kind="warning"] {
             background-color: #fffbeb !important;
-            border-left: 3px solid #f59e0b !important;
-            color: #78350f !important;
+            border-left: 4px solid #f59e0b !important;
         }
 
-        /* Info messages - light blue */
+        div[data-baseweb="notification"][kind="warning"] p,
+        div[data-baseweb="notification"][kind="warning"] div {
+            color: #000000 !important;
+        }
+
+        /* Info messages */
         div[data-baseweb="notification"][kind="info"] {
             background-color: #eff6ff !important;
-            border-left: 3px solid #3b82f6 !important;
-            color: #1e3a8a !important;
+            border-left: 4px solid #3b82f6 !important;
         }
 
-        /* Buttons - professional light theme */
+        div[data-baseweb="notification"][kind="info"] p,
+        div[data-baseweb="notification"][kind="info"] div {
+            color: #000000 !important;
+        }
+
+        /* Buttons */
         .stButton > button {
-            background-color: #f7fafc !important;
-            color: #2d3748 !important;
-            border: 1px solid #cbd5e0 !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1.5px solid #d1d5db !important;
             font-weight: 500 !important;
+            border-radius: 0.5rem !important;
+            padding: 0.5rem 1rem !important;
+            transition: all 0.2s !important;
         }
 
         .stButton > button:hover {
-            background-color: #edf2f7 !important;
-            border: 1px solid #a0aec0 !important;
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
         }
 
         /* Primary button */
         .stButton > button[kind="primary"] {
-            background-color: #3b82f6 !important;
+            background-color: #2563eb !important;
             color: #ffffff !important;
-            border: 1px solid #2563eb !important;
+            border: 1.5px solid #2563eb !important;
+            font-weight: 600 !important;
         }
 
         .stButton > button[kind="primary"]:hover {
-            background-color: #2563eb !important;
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2) !important;
         }
 
-        /* Tabs - light theme */
+        /* Download button */
+        .stDownloadButton > button {
+            background-color: #10b981 !important;
+            color: #ffffff !important;
+            border: 1.5px solid #10b981 !important;
+            font-weight: 600 !important;
+            border-radius: 0.5rem !important;
+        }
+
+        .stDownloadButton > button:hover {
+            background-color: #059669 !important;
+            border-color: #059669 !important;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2) !important;
+        }
+
+        /* Tabs */
         .stTabs [data-baseweb="tab-list"] {
-            background-color: #f7fafc !important;
-            border-bottom: 1px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            border-bottom: 2px solid #d1d5db !important;
+            padding: 0 0.5rem !important;
         }
 
         .stTabs [data-baseweb="tab"] {
-            color: #718096 !important;
+            color: #000000 !important;
             background-color: transparent !important;
             border: none !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: 500 !important;
+        }
+
+        .stTabs [data-baseweb="tab"]:hover {
+            color: #000000 !important;
+            background-color: #f9fafb !important;
         }
 
         .stTabs [aria-selected="true"] {
-            color: #2d3748 !important;
-            border-bottom: 2px solid #3b82f6 !important;
+            color: #000000 !important;
+            border-bottom: 3px solid #2563eb !important;
+            font-weight: 600 !important;
         }
 
         /* Input fields */
         .stTextInput > div > div > input {
             background-color: #ffffff !important;
-            color: #2d3748 !important;
-            border: 1px solid #cbd5e0 !important;
+            color: #000000 !important;
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 0.625rem 0.75rem !important;
+            font-size: 0.9375rem !important;
         }
 
-        /* Sidebar */
-        [data-testid="stSidebar"] {
-            background-color: #f7fafc !important;
+        .stTextInput > div > div > input:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
         }
 
-        /* Metrics */
-        [data-testid="stMetricValue"] {
-            color: #2d3748 !important;
-        }
-
-        /* Expanders */
-        .streamlit-expanderHeader {
-            background-color: #f7fafc !important;
-            color: #2d3748 !important;
-            border: 1px solid #e2e8f0 !important;
+        .stTextInput > label {
+            color: #000000 !important;
+            font-weight: 500 !important;
         }
 
         /* Text areas */
         .stTextArea textarea {
             background-color: #ffffff !important;
-            color: #2d3748 !important;
-            border: 1px solid #cbd5e0 !important;
+            color: #000000 !important;
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 0.75rem !important;
         }
 
-        /* Download button */
-        .stDownloadButton > button {
-            background-color: #3b82f6 !important;
-            color: #ffffff !important;
-            border: 1px solid #2563eb !important;
+        .stTextArea textarea:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
         }
 
-        .stDownloadButton > button:hover {
-            background-color: #2563eb !important;
+        /* Sidebar */
+        [data-testid="stSidebar"] {
+            background-color: #f9fafb !important;
+            border-right: 1px solid #d1d5db !important;
         }
 
-        /* Headers */
-        h1, h2, h3 {
-            color: #1a202c !important;
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] div,
+        [data-testid="stSidebar"] label {
+            color: #000000 !important;
         }
 
-        /* Captions */
-        .caption {
-            color: #718096 !important;
+        /* Expanders */
+        .streamlit-expanderHeader {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            font-weight: 500 !important;
+        }
+
+        .streamlit-expanderHeader:hover {
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+        }
+
+        .streamlit-expanderContent {
+            background-color: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+            border-top: none !important;
         }
 
         /* Dividers */
         hr {
-            border-color: #e2e8f0 !important;
+            border-color: #d1d5db !important;
+            margin: 1.5rem 0 !important;
+        }
+
+        /* Progress bar */
+        .stProgress > div > div {
+            background-color: #e5e7eb !important;
+        }
+
+        .stProgress > div > div > div {
+            background-color: #2563eb !important;
+        }
+
+        /* Metrics */
+        [data-testid="stMetricValue"] {
+            color: #000000 !important;
+            font-weight: 600 !important;
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: #000000 !important;
+        }
+
+        [data-testid="stMetricDelta"] {
+            color: #000000 !important;
+        }
+
+        /* Markdown content */
+        .stMarkdown {
+            color: #000000 !important;
+        }
+
+        .stMarkdown p {
+            color: #000000 !important;
+            line-height: 1.6 !important;
+        }
+
+        .stMarkdown ul, .stMarkdown ol {
+            color: #000000 !important;
+        }
+
+        .stMarkdown li {
+            color: #000000 !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* Checkbox */
+        .stCheckbox {
+            color: #000000 !important;
+        }
+
+        /* Radio */
+        .stRadio label {
+            color: #000000 !important;
+        }
+
+        /* Selectbox */
+        .stSelectbox label {
+            color: #000000 !important;
+            font-weight: 500 !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
     # Header with icon
     st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1a202c" stroke-width="2" style="margin-right: 12px;">
+        <div style="display: flex; align-items: center; margin-bottom: 2rem; padding: 1.5rem 0 1rem 0; border-bottom: 2px solid #d1d5db;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 14px;">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
-            <h1 style="margin: 0; color: #1a202c;">Metadata Extractor</h1>
+            <h1 style="margin: 0; color: #000000; font-weight: 700;">Metadata Extractor</h1>
         </div>
     """, unsafe_allow_html=True)
-    st.caption("Extract license, place, and temporal metadata from any URL")
 
     # Sidebar configuration
     with st.sidebar:
         st.markdown("""
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
+            <div style="display: flex; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #d1d5db;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 10px;">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M12 1v6m0 6v6m-6-6h6m6 0h6"></path>
                     <path d="M12 1v6m0 6v6"></path>
@@ -411,15 +603,13 @@ def main():
                     <circle cx="12" cy="19" r="2"></circle>
                     <circle cx="12" cy="5" r="2"></circle>
                 </svg>
-                <h3 style="margin: 0; color: #2d3748;">Configuration</h3>
+                <h3 style="margin: 0; color: #000000; font-weight: 600;">Configuration</h3>
             </div>
         """, unsafe_allow_html=True)
 
         # API Key
         api_key = os.getenv('GROQ_API_KEY')
-        if api_key:
-            st.success(f"API Key loaded from environment (...{api_key[-4:]})")
-        else:
+        if not api_key:
             st.error("No API key found in .env file")
 
         # Use default values - increased for better reliability
@@ -431,12 +621,12 @@ def main():
 
         # URL History
         st.markdown("""
-            <div style="display: flex; align-items: center; margin: 1.5rem 0 1rem 0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
+            <div style="display: flex; align-items: center; margin: 2rem 0 1rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid #d1d5db;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <h3 style="margin: 0; color: #2d3748;">Recent URLs</h3>
+                <h4 style="margin: 0; color: #000000; font-weight: 600; font-size: 1rem;">Recent URLs</h4>
             </div>
         """, unsafe_allow_html=True)
         if 'url_history' not in st.session_state:
@@ -454,13 +644,13 @@ def main():
 
         # Help section
         st.markdown("""
-            <div style="display: flex; align-items: center; margin: 1.5rem 0 0.5rem 0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 8px;">
+            <div style="display: flex; align-items: center; margin: 2rem 0 1rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid #d1d5db;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
-                <h3 style="margin: 0; color: #2d3748; font-size: 0.9rem;">About</h3>
+                <h4 style="margin: 0; color: #000000; font-weight: 600; font-size: 1rem;">About</h4>
             </div>
         """, unsafe_allow_html=True)
 
@@ -481,12 +671,12 @@ def main():
 
     # URL input with icon
     st.markdown("""
-        <div style="display: flex; align-items: center; margin-top: 1.5rem; margin-bottom: 0.3rem;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin-right: 6px;">
+        <div style="display: flex; align-items: center; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
             </svg>
-            <span style="color: #4a5568; font-size: 0.875rem;">Enter URL</span>
+            <span style="color: #000000; font-size: 0.95rem; font-weight: 500;">Enter URL to analyze</span>
         </div>
     """, unsafe_allow_html=True)
 
