@@ -12,10 +12,317 @@ web pages and nested links to find:
 import streamlit as st
 import os
 import json
+import requests
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from src.utils.groq_browser_automation import GroqBrowserAutomation
+from src.utils.auth import show_auth_page, logout
+
+
+def find_dc_property(query: str, api_key: str = None) -> dict:
+    """Find Data Commons property for a concept (e.g., 'agriculture' -> 'economicSector, Agriculture')."""
+    api_key = api_key or os.getenv("DC_API_KEY")
+    if not api_key:
+        return {"success": False, "error": "DC_API_KEY required"}
+
+    headers = {"X-API-Key": api_key}
+    query_lower = query.lower().strip()
+
+    try:
+        # Search for matching entities using SPARQL
+        sparql = f"""
+        SELECT ?dcid ?name ?type WHERE {{
+            ?dcid name ?name .
+            ?dcid typeOf ?type .
+            FILTER(CONTAINS(LCASE(?name), "{query_lower}") || CONTAINS(LCASE(STR(?dcid)), "{query_lower}"))
+        }} LIMIT 20
+        """
+        resp = requests.get(
+            "https://api.datacommons.org/v2/sparql",
+            headers=headers,
+            params={"query": sparql},
+            timeout=30
+        )
+        results = []
+        if resp.status_code == 200:
+            data = resp.json()
+            for row in data.get("rows", []):
+                cells = row.get("cells", [])
+                if len(cells) >= 3:
+                    dcid = cells[0].get("value", "")
+                    name = cells[1].get("value", "")
+                    type_val = cells[2].get("value", "")
+                    # Extract property from type (e.g., EconomicSectorEnum -> economicSector)
+                    if "Enum" in type_val:
+                        prop = type_val.replace("Enum", "")
+                        prop = prop[0].lower() + prop[1:] if prop else prop
+                        results.append({"property": prop, "value": name, "dcid": dcid, "type": type_val})
+
+        # Also try direct node lookup for enum values
+        resp2 = requests.post(
+            "https://api.datacommons.org/v2/node",
+            headers=headers,
+            json={"nodes": [query, query.title(), f"dc/{query}"], "property": "->*"},
+            timeout=30
+        )
+        if resp2.status_code == 200:
+            for node_id, node_data in resp2.json().get("data", {}).items():
+                arcs = node_data.get("arcs", {})
+                type_of = arcs.get("typeOf", {}).get("nodes", [])
+                for t in type_of:
+                    type_val = t.get("dcid", "")
+                    if "Enum" in type_val:
+                        prop = type_val.replace("Enum", "")
+                        prop = prop[0].lower() + prop[1:] if prop else prop
+                        name = arcs.get("name", {}).get("nodes", [{}])[0].get("value", node_id)
+                        results.append({"property": prop, "value": name, "dcid": node_id, "type": type_val})
+
+        if results:
+            # Deduplicate
+            seen = set()
+            unique = []
+            for r in results:
+                key = (r["property"], r["value"])
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(r)
+            return {"success": True, "results": unique}
+        return {"success": False, "error": f"No DC property found for '{query}'"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def get_entity_properties(entity_name: str, api_key: str = None) -> dict:
+    """Fetch Data Commons properties for an entity by name - supports places, statistical variables, topics, etc."""
+    api_key = api_key or os.getenv("DC_API_KEY")
+    if not api_key:
+        return {"success": False, "error": "Data Commons API key required. Get one free at apikeys.datacommons.org and add DC_API_KEY to .env"}
+
+    headers = {"X-API-Key": api_key}
+
+    def try_resolve(nodes, prop):
+        """Try to resolve entity with given property."""
+        try:
+            resp = requests.post(
+                "https://api.datacommons.org/v2/resolve",
+                headers=headers,
+                json={"nodes": nodes, "property": prop},
+                timeout=30
+            )
+            data = resp.json()
+            entities = data.get("entities", [])
+            if entities and entities[0].get("candidates"):
+                return entities[0]["candidates"]
+        except:
+            pass
+        return []
+
+    def search_statistical_variables(query):
+        """Search for statistical variables matching the query."""
+        try:
+            # Search for statistical variables
+            resp = requests.get(
+                f"https://api.datacommons.org/v2/node",
+                headers=headers,
+                params={
+                    "nodes": "dc/g/Root",
+                    "property": "->member"
+                },
+                timeout=30
+            )
+            # Try the search API for variables
+            search_resp = requests.get(
+                f"https://datacommons.org/api/explore/search?query={requests.utils.quote(query)}",
+                timeout=30
+            )
+            if search_resp.status_code == 200:
+                data = search_resp.json()
+                if data.get("variables"):
+                    return [{"dcid": v} for v in data["variables"][:10]]
+        except:
+            pass
+        return []
+
+    try:
+        candidates = []
+
+        # Method 1: Try direct DCID lookup first (if user entered a DCID)
+        if "/" in entity_name or entity_name.startswith("dc/"):
+            dcid = entity_name
+            props_resp = requests.post(
+                "https://api.datacommons.org/v2/node",
+                headers=headers,
+                json={"nodes": [dcid], "property": "->*"},
+                timeout=30
+            )
+            data = props_resp.json().get("data", {})
+            if dcid in data:
+                arcs = data.get(dcid, {}).get("arcs", {})
+                props = {k: [n.get("value") or n.get("dcid") for n in v.get("nodes", [])] for k, v in arcs.items()}
+                return {"success": True, "dcid": dcid, "name": entity_name, "properties": props, "all_candidates": [dcid], "entity_type": "Direct DCID"}
+
+        # Method 2: Try description property
+        candidates = try_resolve([entity_name], "<-description->dcid")
+
+        # Method 3: Try name property
+        if not candidates:
+            candidates = try_resolve([entity_name], "<-name->dcid")
+
+        # Method 4: Search for StatisticalVariable
+        if not candidates:
+            try:
+                # Try to find statistical variables with this name
+                sv_search = requests.post(
+                    "https://api.datacommons.org/v2/resolve",
+                    headers=headers,
+                    json={"nodes": [entity_name], "property": "<-name{typeOf:StatisticalVariable}->dcid"},
+                    timeout=30
+                )
+                sv_data = sv_search.json()
+                entities = sv_data.get("entities", [])
+                if entities and entities[0].get("candidates"):
+                    candidates = entities[0]["candidates"]
+            except:
+                pass
+
+        # Method 5: Search Data Commons explore API for variables
+        if not candidates:
+            try:
+                explore_resp = requests.get(
+                    f"https://datacommons.org/api/explore/search?query={requests.utils.quote(entity_name)}",
+                    timeout=30
+                )
+                if explore_resp.status_code == 200:
+                    explore_data = explore_resp.json()
+                    if explore_data.get("variables"):
+                        candidates = [{"dcid": v} for v in explore_data["variables"][:10]]
+            except:
+                pass
+
+        # Method 6: Try the v2 observation endpoint to find related variables
+        if not candidates:
+            try:
+                # Search using autocomplete-like functionality
+                auto_resp = requests.get(
+                    f"https://api.datacommons.org/v2/sparql",
+                    headers=headers,
+                    params={
+                        "query": f"""
+                        SELECT ?dcid ?name WHERE {{
+                            ?dcid typeOf StatisticalVariable .
+                            ?dcid name ?name .
+                            FILTER(CONTAINS(LCASE(?name), "{entity_name.lower()}"))
+                        }}
+                        LIMIT 10
+                        """
+                    },
+                    timeout=30
+                )
+                if auto_resp.status_code == 200:
+                    sparql_data = auto_resp.json()
+                    rows = sparql_data.get("rows", [])
+                    if rows:
+                        candidates = [{"dcid": row.get("cells", [{}])[0].get("value")} for row in rows if row.get("cells")]
+            except:
+                pass
+
+        # Method 7: Use find API for Places
+        if not candidates:
+            try:
+                find_resp = requests.get(
+                    f"https://api.datacommons.org/v2/find?query={requests.utils.quote(entity_name)}&type=Place",
+                    headers=headers,
+                    timeout=30
+                )
+                find_data = find_resp.json()
+                items = find_data.get("items", [])
+                if items:
+                    candidates = [{"dcid": item.get("dcid")} for item in items if item.get("dcid")]
+            except:
+                pass
+
+        # Method 8: Use find API without type constraint
+        if not candidates:
+            try:
+                find_resp = requests.get(
+                    f"https://api.datacommons.org/v2/find?query={requests.utils.quote(entity_name)}",
+                    headers=headers,
+                    timeout=30
+                )
+                find_data = find_resp.json()
+                items = find_data.get("items", [])
+                if items:
+                    candidates = [{"dcid": item.get("dcid")} for item in items if item.get("dcid")]
+            except:
+                pass
+
+        if not candidates:
+            return {"success": False, "error": f"Could not resolve '{entity_name}' to a Data Commons entity. Try:\n- Places: 'France', 'California', 'Paris'\n- Variables: 'population', 'gdp', 'unemployment'\n- DCIDs: 'country/USA', 'Count_Person'"}
+
+        dcid = candidates[0]["dcid"]
+        all_dcids = [c["dcid"] for c in candidates[:10] if c.get("dcid")]
+
+        # Fetch properties for the found entity
+        props_resp = requests.post(
+            "https://api.datacommons.org/v2/node",
+            headers=headers,
+            json={"nodes": [dcid], "property": "->*"},
+            timeout=30
+        )
+        arcs = props_resp.json().get("data", {}).get(dcid, {}).get("arcs", {})
+        props = {k: [n.get("value") or n.get("dcid") for n in v.get("nodes", [])] for k, v in arcs.items()}
+
+        # Determine entity type from properties
+        entity_type = "Unknown"
+        if "typeOf" in props:
+            entity_type = ", ".join(str(t) for t in props["typeOf"][:3])
+
+        return {"success": True, "dcid": dcid, "name": entity_name, "properties": props, "all_candidates": all_dcids, "entity_type": entity_type}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# Country name to Data Commons DCID mapping
+COUNTRY_DCIDS = {
+    "united states": "country/USA", "usa": "country/USA", "us": "country/USA", "america": "country/USA",
+    "canada": "country/CAN", "france": "country/FRA", "french": "country/FRA",
+    "norway": "country/NOR", "norwegian": "country/NOR", "united kingdom": "country/GBR",
+    "uk": "country/GBR", "great britain": "country/GBR", "england": "country/GBR",
+    "germany": "country/DEU", "german": "country/DEU", "spain": "country/ESP", "spanish": "country/ESP",
+    "italy": "country/ITA", "italian": "country/ITA", "japan": "country/JPN", "japanese": "country/JPN",
+    "china": "country/CHN", "chinese": "country/CHN", "india": "country/IND", "indian": "country/IND",
+    "australia": "country/AUS", "australian": "country/AUS", "brazil": "country/BRA", "brazilian": "country/BRA",
+    "mexico": "country/MEX", "mexican": "country/MEX", "russia": "country/RUS", "russian": "country/RUS",
+    "south korea": "country/KOR", "korea": "country/KOR", "netherlands": "country/NLD", "dutch": "country/NLD",
+    "sweden": "country/SWE", "swedish": "country/SWE", "switzerland": "country/CHE", "swiss": "country/CHE",
+    "belgium": "country/BEL", "austria": "country/AUT", "poland": "country/POL", "denmark": "country/DNK",
+    "finland": "country/FIN", "ireland": "country/IRL", "portugal": "country/PRT", "greece": "country/GRC",
+    "new zealand": "country/NZL", "singapore": "country/SGP", "south africa": "country/ZAF",
+    "argentina": "country/ARG", "chile": "country/CHL", "colombia": "country/COL", "peru": "country/PER",
+    "indonesia": "country/IDN", "malaysia": "country/MYS", "thailand": "country/THA", "vietnam": "country/VNM",
+    "philippines": "country/PHL", "egypt": "country/EGY", "nigeria": "country/NGA", "kenya": "country/KEN",
+    "israel": "country/ISR", "saudi arabia": "country/SAU", "turkey": "country/TUR", "ukraine": "country/UKR",
+    "czech republic": "country/CZE", "czechia": "country/CZE", "hungary": "country/HUN", "romania": "country/ROU",
+    "bulgaria": "country/BGR", "bulgarian": "country/BGR", "croatia": "country/HRV", "slovakia": "country/SVK",
+    "slovenia": "country/SVN", "estonia": "country/EST", "latvia": "country/LVA", "lithuania": "country/LTU",
+}
+
+def get_country_dcids(text: str) -> list:
+    """Extract Data Commons DCIDs for countries mentioned in text.
+    Returns list of tuples: (country_name, dcid)
+    """
+    if not text:
+        return []
+    text_lower = text.lower()
+    found = []
+    seen_dcids = set()
+    for name, dcid in COUNTRY_DCIDS.items():
+        if name in text_lower and dcid not in seen_dcids:
+            # Get proper country name (first entry for this DCID)
+            country_name = name.title()
+            found.append((country_name, dcid))
+            seen_dcids.add(dcid)
+    return found
 
 # Load environment variables from .env file in script directory
 env_path = Path(__file__).parent / '.env'
@@ -43,7 +350,16 @@ def format_comprehensive_display(result: dict):
     # Summary Tab
     with tab1:
         st.subheader("Complete Extracted Information")
-        st.markdown(result.get("content", "No content available"))
+        content = result.get("content", "No content available")
+        # Inject Data Commons DCID into geographic coverage section
+        country_dcids = get_country_dcids(content)
+        if country_dcids and "GEOGRAPHIC COVERAGE" in content.upper():
+            dcid_entries = [f"{name}: `{dcid}`" for name, dcid in country_dcids]
+            dcid_line = f"\n- **Data Commons DCIDs:** {', '.join(dcid_entries)}"
+            # Insert after geographic coverage section header
+            import re
+            content = re.sub(r'(#+\s*\d*\.?\s*GEOGRAPHIC COVERAGE[^\n]*\n)', r'\1' + dcid_line + '\n', content, flags=re.IGNORECASE)
+        st.markdown(content)
 
     # License Tab
     with tab2:
@@ -82,11 +398,20 @@ def format_comprehensive_display(result: dict):
 
         # Geographic Coverage
         geo_coverage = place_data.get("geographic_coverage", {})
+        all_geo_text = ""
         if geo_coverage:
             st.markdown("**Geographic Coverage:**")
             for key, value in geo_coverage.items():
                 if value:
                     st.write(f"• **{key.replace('_', ' ').title()}:** {value}")
+                    all_geo_text += f" {value}"
+        # Also check full content for country mentions
+        all_geo_text += f" {result.get('content', '')}"
+        country_dcids = get_country_dcids(all_geo_text)
+        if country_dcids:
+            st.markdown("**Data Commons Country DCIDs:**")
+            for country_name, dcid in country_dcids:
+                st.write(f"• {country_name}: `{dcid}`")
 
         # Place Types
         place_types = place_data.get("place_types", [])
@@ -242,6 +567,11 @@ def main():
         layout="wide",
         initial_sidebar_state="collapsed"
     )
+
+    # Authentication check - show login page if not authenticated
+    user_email = show_auth_page()
+    if not user_email:
+        return  # Stop here if not authenticated
 
     # Custom CSS for clean light theme
     st.markdown("""
@@ -593,6 +923,25 @@ def main():
 
     # Sidebar configuration
     with st.sidebar:
+        # User info and logout
+        st.markdown(f"""
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem; background-color: #f0f9ff; border-radius: 0.5rem; border: 1px solid #bae6fd;">
+                <div style="display: flex; align-items: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="2" style="margin-right: 8px;">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span style="color: #0369a1; font-size: 0.85rem; font-weight: 500;">{user_email}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Logout", use_container_width=True, key="logout_btn"):
+            logout()
+            st.rerun()
+
+        st.markdown("---")
+
         st.markdown("""
             <div style="display: flex; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #d1d5db;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 10px;">
@@ -620,26 +969,26 @@ def main():
 
         st.divider()
 
-        # URL History
+        # Source History
         st.markdown("""
             <div style="display: flex; align-items: center; margin: 2rem 0 1rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid #d1d5db;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <h4 style="margin: 0; color: #000000; font-weight: 600; font-size: 1rem;">Recent URLs</h4>
+                <h4 style="margin: 0; color: #000000; font-weight: 600; font-size: 1rem;">Recent Sources</h4>
             </div>
         """, unsafe_allow_html=True)
         if 'url_history' not in st.session_state:
             st.session_state.url_history = []
 
         if st.session_state.url_history:
-            for idx, historic_url in enumerate(reversed(st.session_state.url_history[-5:])):
-                if st.button(f"{historic_url[:40]}...", key=f"hist_{idx}", use_container_width=True):
-                    st.session_state.selected_url = historic_url
+            for idx, historic_source in enumerate(reversed(st.session_state.url_history[-5:])):
+                if st.button(f"{historic_source[:40]}...", key=f"hist_{idx}", use_container_width=True):
+                    st.session_state.selected_source = historic_source
                     st.rerun()
         else:
-            st.info("No URLs processed yet")
+            st.info("No sources processed yet")
 
         st.divider()
 
@@ -665,328 +1014,417 @@ def main():
             Uses browser automation to search across multiple pages.
             """)
 
-    # Main content area
-    if not api_key:
-        st.warning("Please provide a Groq API key in the sidebar or .env file")
-        st.stop()
+    # Main content area - Tool Selection Tabs
+    tool_tab1, tool_tab2 = st.tabs(["Metadata Extractor", "Entity Properties"])
 
-    # URL input with icon
-    st.markdown("""
-        <div style="display: flex; align-items: center; margin-top: 0.5rem; margin-bottom: 0.5rem;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-            <span style="color: #000000; font-size: 0.95rem; font-weight: 500;">Enter URL to analyze</span>
-        </div>
-    """, unsafe_allow_html=True)
-
-    default_url = st.session_state.get('selected_url', '')
-    url = st.text_input(
-        "url_input",
-        value=default_url,
-        placeholder="https://example.com/dataset",
-        label_visibility="collapsed"
-    )
-
-    # Example URLs section
-    with st.expander("Need an example? Try these URLs"):
-        st.markdown("**Government & Statistics:**")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if st.button("French Open Data", key="ex1", use_container_width=True):
-                st.session_state.selected_url = "https://data.gouv.fr"
-                st.rerun()
-            if st.button("Norway Statistics", key="ex2", use_container_width=True):
-                st.session_state.selected_url = "https://www.ssb.no"
-                st.rerun()
-
-        with col2:
-            if st.button("Canada Statistics", key="ex3", use_container_width=True):
-                st.session_state.selected_url = "https://www.statcan.gc.ca"
-                st.rerun()
-            if st.button("GitHub Repository", key="ex4", use_container_width=True):
-                st.session_state.selected_url = "https://github.com/torvalds/linux"
-                st.rerun()
-
-    # Extract button - full width for professional appearance
-    extract_button = st.button("Extract Metadata", type="primary", use_container_width=True)
-
-    if extract_button:
-        if not url:
-            st.warning("Please enter a URL to analyze")
-            return
-
-        # Add to history
-        if url not in st.session_state.url_history:
-            st.session_state.url_history.append(url)
-
-        try:
-            # Initialize browser automation client with timeout
-            client = GroqBrowserAutomation(api_key=api_key, model=model, timeout=timeout)
-
-            # Try extraction with timeout handling and progress tracking
-            import time
-            start_time = time.time()
-
-            # Create progress indicators
-            progress_bar = st.progress(0)
-            status_container = st.empty()
-
-            # Step 1: Initialize
-            status_container.info("Initializing browser automation (timeout: 4 minutes, max retries: 3)...")
-            progress_bar.progress(0.15)
-            time.sleep(0.3)
-
-            # Step 2: Starting extraction
-            status_container.info("Visiting main page and discovering links...")
-            progress_bar.progress(0.30)
-
-            # Actual extraction with automatic retry on failure
-            attempt = 1
-            result = client.extract_all_metadata(url, max_retries=max_retries)
-
-            # If first attempt fails, automatically retry once more
-            if not result.get("success") and attempt == 1:
-                attempt += 1
-                status_container.warning(f"Attempt {attempt-1} failed, retrying automatically (attempt {attempt}/2)...")
-                progress_bar.progress(0.40)
-                time.sleep(2)
-                result = client.extract_all_metadata(url, max_retries=max_retries)
-
-            # Step 3: Processing
-            status_container.info("Analyzing license and metadata information...")
-            progress_bar.progress(0.70)
-            time.sleep(0.2)
-
-            # Step 4: Finalizing
-            status_container.info("Finalizing extraction...")
-            progress_bar.progress(0.90)
-            time.sleep(0.2)
-
-            # Complete
-            progress_bar.progress(1.0)
-            elapsed_time = time.time() - start_time
-            status_container.empty()
-            progress_bar.empty()
-
-            # Display results
-            st.divider()
-
-            if result.get("success"):
-                st.success(f"Completed in {elapsed_time:.1f}s")
-                format_comprehensive_display(result)
-
-                # Download button
-                st.divider()
-                save_results_json(result, url)
-
+    with tool_tab2:
+        # Entity Property Tool
+        st.markdown("**Find Data Commons property for a concept (e.g., 'agriculture' → economicSector, Agriculture)**")
+        entity_input = st.text_input(
+            "Entity name",
+            placeholder="e.g., agriculture, manufacturing, retail, healthcare",
+            label_visibility="collapsed",
+            key="entity_input"
+        )
+        if st.button("Find DC Property", key="get_props", use_container_width=True):
+            if entity_input:
+                with st.spinner("Searching Data Commons..."):
+                    result = find_dc_property(entity_input)
+                if result["success"]:
+                    st.success(f"Found {len(result['results'])} matching DC properties:")
+                    for r in result["results"][:10]:
+                        st.code(f"{r['property']}, {r['value']}", language=None)
+                        st.caption(f"DCID: `{r['dcid']}` | Type: {r['type']}")
+                else:
+                    st.warning(result["error"])
+                    # Fallback to full entity lookup
+                    st.info("Trying full entity lookup...")
+                    result2 = get_entity_properties(entity_input)
+                    if result2["success"]:
+                        st.success(f"Found: **{result2['dcid']}** (Type: {result2.get('entity_type', 'Unknown')})")
+                        props = result2["properties"]
+                        if props:
+                            for prop in ["name", "typeOf", "description"][:3]:
+                                if prop in props:
+                                    st.write(f"**{prop}:** {', '.join(str(v) for v in props[prop][:3])}")
             else:
-                error_msg = result.get('error', 'Unknown error')
+                st.warning("Enter a concept name (e.g., agriculture, manufacturing)")
 
-                # Show detailed error with solutions
-                st.error("Extraction Failed")
+    with tool_tab1:
+        if not api_key:
+            st.warning("Please provide a Groq API key in the sidebar or .env file")
+            st.stop()
 
-                # ALWAYS show the actual error first for debugging
-                st.warning(f"**Error Details:** {error_msg}")
-                st.caption("This helps us understand what went wrong")
+        # Source name input with icon
+        st.markdown("""
+            <div style="display: flex; align-items: center; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <span style="color: #000000; font-size: 0.95rem; font-weight: 500;">Enter source name (URL will be auto-detected)</span>
+            </div>
+        """, unsafe_allow_html=True)
 
-                # Rate limit errors (429) - HANDLE FIRST
-                if "429" in error_msg or "rate limit" in error_msg.lower() or "rate_limit_exceeded" in error_msg.lower():
-                    st.markdown("""
-                    **API Rate Limit Reached**
+        default_source = st.session_state.get('selected_source', '')
+        source_name = st.text_input(
+            "source_input",
+            value=default_source,
+            placeholder="e.g., IPEDS, Statistics Canada, or https://nces.ed.gov/ipeds",
+            label_visibility="collapsed"
+        )
 
-                    Your Groq API key has reached its usage limit.
-                    """)
+        # Description field (required for source names, optional for direct URLs)
+        st.markdown("""
+            <div style="display: flex; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 8px;">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span style="color: #000000; font-size: 0.95rem; font-weight: 500;">Description (required for source names, optional for URLs)</span>
+            </div>
+        """, unsafe_allow_html=True)
+        source_description = st.text_area(
+            "source_description",
+            placeholder="Describe what information you're looking for (e.g., 'Find license type, geographic coverage, and date range for this education dataset')",
+            label_visibility="collapsed",
+            height=80
+        )
 
-                    # Extract wait time if available
-                    import re
-                    wait_match = re.search(r'try again in ([\d.]+)s', error_msg)
-                    if wait_match:
-                        wait_time = float(wait_match.group(1))
-                        st.warning(f"Wait time: **{wait_time:.1f} seconds** before the limit resets")
+        # Example sources section
+        with st.expander("Need an example? Try these sources"):
+            st.markdown("**Government & Statistics:**")
+            col1, col2 = st.columns(2)
 
-                    st.markdown("""
-                    **Solutions:**
+            with col1:
+                if st.button("French Open Data", key="ex1", use_container_width=True):
+                    st.session_state.selected_source = "French Open Data Portal data.gouv.fr"
+                    st.rerun()
+                if st.button("Norway Statistics", key="ex2", use_container_width=True):
+                    st.session_state.selected_source = "Statistics Norway SSB"
+                    st.rerun()
 
-                    **Option 1: Wait for Rate Limit Reset (Recommended)**
-                    - Wait for the time shown above
-                    - Click the retry button below
+            with col2:
+                if st.button("Statistics Canada", key="ex3", use_container_width=True):
+                    st.session_state.selected_source = "Statistics Canada StatCan"
+                    st.rerun()
+                if st.button("US Census Bureau", key="ex4", use_container_width=True):
+                    st.session_state.selected_source = "US Census Bureau"
+                    st.rerun()
 
-                    **Option 2: Try Simpler URLs**
-                    - Use main website URLs (not table views)
-                    - Simpler pages use fewer tokens
+        # Extract button - full width for professional appearance
+        extract_button = st.button("Extract Metadata", type="primary", use_container_width=True)
 
-                    **Option 3: Upgrade Your Plan**
-                    - Visit: https://console.groq.com/settings/billing
-                    - Upgrade to Dev Tier for higher limits
-                    """)
+        if extract_button:
+            if not source_name:
+                st.warning("Please enter a source name to analyze")
+                return
+            # Description is required only for source names (not direct URLs)
+            is_direct_url = source_name.startswith(('http://', 'https://'))
+            if not is_direct_url and not source_description.strip():
+                st.warning("Please enter a description of what information you're looking for")
+                return
 
-                    # Show usage stats
-                    usage_match = re.search(r'Limit (\d+), Used (\d+), Requested (\d+)', error_msg)
-                    if usage_match:
-                        limit = int(usage_match.group(1))
-                        used = int(usage_match.group(2))
-                        requested = int(usage_match.group(3))
+            # Add to history
+            if source_name not in st.session_state.url_history:
+                st.session_state.url_history.append(source_name)
 
-                        st.markdown("**Current Usage:**")
-                        usage_pct = (used / limit) * 100
-                        st.progress(usage_pct / 100)
-                        st.caption(f"Used: {used:,} / {limit:,} tokens ({usage_pct:.1f}%)")
-                        st.caption(f"Requested: {requested:,} tokens")
+            try:
+                # Initialize browser automation client with timeout
+                client = GroqBrowserAutomation(api_key=api_key, model=model, timeout=timeout)
 
-                    # Auto-retry button
-                    if wait_match:
-                        wait_time = float(wait_match.group(1))
-                        st.markdown(f"**Auto-retry in {wait_time:.0f} seconds:**")
+                # Try extraction with timeout handling and progress tracking
+                import time
+                start_time = time.time()
 
-                        col1, col2 = st.columns([2, 1])
-                        with col1:
-                            if st.button(f"⏱ Wait {wait_time:.0f}s and Retry", use_container_width=True, key="wait_retry"):
-                                import time
-                                with st.spinner(f"Waiting {wait_time:.0f} seconds..."):
-                                    time.sleep(wait_time + 1)  # Add 1 second buffer
-                                st.rerun()
-                        with col2:
-                            if st.button("🔄 Retry Now", use_container_width=True, key="retry_now"):
-                                st.rerun()
+                # Create progress indicators
+                progress_bar = st.progress(0)
+                status_container = st.empty()
 
-                # Request too large errors (413)
-                elif "413" in error_msg or "too large" in error_msg.lower() or "request entity too large" in error_msg.lower():
-                    st.markdown("""
-                    **The page content is too large for the API to process.**
+                # Step 1: Auto-detect URL from source name (or use directly if URL provided)
+                url_result = {}
+                if source_name.startswith(('http://', 'https://')):
+                    # User entered a URL directly
+                    url = source_name
+                    status_container.info(f"Using provided URL...")
+                    progress_bar.progress(0.15)
+                else:
+                    # Search for URL
+                    status_container.info(f"Searching for '{source_name}'...")
+                    progress_bar.progress(0.10)
+                    url_result = client.find_source_url(source_name, max_retries=max_retries)
+                    url = url_result.get("detected_url")
 
-                    This happens with complex data tables or pages with lots of content.
+                # Fallback: use data_url if main url not found
+                if not url and url_result.get("data_url"):
+                    url = url_result.get("data_url")
 
-                    **Solutions:**
-                    """)
+                if not url:
+                    progress_bar.empty()
+                    status_container.empty()
 
-                    # Try to extract main URL
-                    if "/table/" in url or "/tableView" in url:
-                        # Extract base URL
-                        parts = url.split("/")
-                        main_url = "/".join(parts[:3])  # https://www.ssb.no
-                        st.markdown(f"""
-                        1. **Try the main website instead:**
+                    if url_result.get("error"):
+                        st.error(f"API Error: {url_result.get('error')}")
+                    elif url_result.get("content"):
+                        st.warning("Found content but couldn't extract URL:")
+                        with st.expander("Show API response"):
+                            st.text(url_result.get("content", "")[:2000])
+                    else:
+                        st.error(f"Could not find URL for '{source_name}'")
+
+                    st.markdown("**Try:** Enter the URL directly or use simpler search terms")
+                    st.stop()
+
+                # Show detected URLs
+                st.success(f"Main Site: **{url}**")
+                if url_result.get("data_url"):
+                    st.success(f"Data Page: [{url_result['data_url']}]({url_result['data_url']})")
+                if url_result.get("license_url"):
+                    st.info(f"License Page: [{url_result['license_url']}]({url_result['license_url']})")
+                progress_bar.progress(0.25)
+
+                # Step 2: Initialize extraction
+                status_container.info("Initializing browser automation (timeout: 4 minutes, max retries: 3)...")
+                progress_bar.progress(0.30)
+                time.sleep(0.3)
+
+                # Step 3: Starting extraction
+                status_container.info("Visiting main page and discovering links...")
+                progress_bar.progress(0.40)
+
+                # Helper function to check if result has meaningful content
+                def has_meaningful_content(res):
+                    """Check if the result contains actual extractable information."""
+                    if not res.get("success"):
+                        return False
+                    content = res.get("content", "")
+                    if not content or len(content.strip()) < 50:
+                        return False
+                    # Check if content has actual information (not just error messages)
+                    content_lower = content.lower()
+                    empty_indicators = [
+                        "no information", "could not find", "unable to", "not available",
+                        "no data", "empty", "blank", "n/a", "none found"
+                    ]
+                    # If content is mostly empty indicators, consider it empty
+                    indicator_count = sum(1 for ind in empty_indicators if ind in content_lower)
+                    if indicator_count > 3:
+                        return False
+                    return True
+
+                # Actual extraction with automatic retry on failure or empty content
+                max_attempts = 3
+                result = None
+
+                for attempt in range(1, max_attempts + 1):
+                    status_container.info(f"Extracting metadata (attempt {attempt}/{max_attempts})...")
+                    progress_bar.progress(0.30 + (attempt * 0.1))
+
+                    result = client.extract_all_metadata(url, max_retries=max_retries, description=source_description)
+
+                    # Check if we got meaningful content
+                    if has_meaningful_content(result):
+                        break
+
+                    # If failed or empty, retry
+                    if attempt < max_attempts:
+                        if not result.get("success"):
+                            status_container.warning(f"Attempt {attempt} failed, retrying...")
+                        else:
+                            status_container.warning(f"Attempt {attempt} returned empty content, retrying...")
+                        time.sleep(2)
+
+                # Final check - if still no meaningful content after all attempts
+                if not has_meaningful_content(result):
+                    if result.get("success"):
+                        # Mark as failed if success but empty
+                        result["success"] = False
+                        result["error"] = "Extraction completed but returned empty or insufficient content after multiple attempts. Please try again."
+
+                # Step 3: Processing
+                status_container.info("Analyzing license and metadata information...")
+                progress_bar.progress(0.70)
+                time.sleep(0.2)
+
+                # Step 4: Finalizing
+                status_container.info("Finalizing extraction...")
+                progress_bar.progress(0.90)
+                time.sleep(0.2)
+
+                # Complete
+                progress_bar.progress(1.0)
+                elapsed_time = time.time() - start_time
+                status_container.empty()
+                progress_bar.empty()
+
+                # Display results
+                st.divider()
+
+                if result.get("success") and has_meaningful_content(result):
+                    st.success(f"Completed in {elapsed_time:.1f}s")
+                    format_comprehensive_display(result)
+
+                    # Download button
+                    st.divider()
+                    save_results_json(result, url)
+
+                else:
+                    error_msg = result.get('error', 'Unknown error')
+
+                    # Show detailed error with solutions
+                    st.error("Extraction Failed")
+
+                    # ALWAYS show the actual error first for debugging
+                    st.warning(f"**Error Details:** {error_msg}")
+                    st.caption("This helps us understand what went wrong")
+
+                    # Rate limit errors (429) - HANDLE FIRST
+                    if "429" in error_msg or "rate limit" in error_msg.lower() or "rate_limit_exceeded" in error_msg.lower():
+                        st.markdown("""
+                        **API Rate Limit Reached**
+
+                        Your Groq API key has reached its usage limit.
                         """)
-                        if st.button(f"Try {main_url}", use_container_width=True, key="try_main"):
+
+                        # Extract wait time if available
+                        import re
+                        wait_match = re.search(r'try again in ([\d.]+)s', error_msg)
+                        if wait_match:
+                            wait_time = float(wait_match.group(1))
+                            st.warning(f"Wait time: **{wait_time:.1f} seconds** before the limit resets")
+
+                        st.markdown("""
+                        **Solutions:**
+
+                        **Option 1: Wait for Rate Limit Reset (Recommended)**
+                        - Wait for the time shown above
+                        - Click the retry button below
+
+                        **Option 2: Try Simpler URLs**
+                        - Use main website URLs (not table views)
+                        - Simpler pages use fewer tokens
+
+                        **Option 3: Upgrade Your Plan**
+                        - Visit: https://console.groq.com/settings/billing
+                        - Upgrade to Dev Tier for higher limits
+                        """)
+
+                        # Show usage stats
+                        usage_match = re.search(r'Limit (\d+), Used (\d+), Requested (\d+)', error_msg)
+                        if usage_match:
+                            limit = int(usage_match.group(1))
+                            used = int(usage_match.group(2))
+                            requested = int(usage_match.group(3))
+
+                            st.markdown("**Current Usage:**")
+                            usage_pct = (used / limit) * 100
+                            st.progress(usage_pct / 100)
+                            st.caption(f"Used: {used:,} / {limit:,} tokens ({usage_pct:.1f}%)")
+                            st.caption(f"Requested: {requested:,} tokens")
+
+                        # Auto-retry button
+                        if wait_match:
+                            wait_time = float(wait_match.group(1))
+                            st.markdown(f"**Auto-retry in {wait_time:.0f} seconds:**")
+
+                            col1, col2 = st.columns([2, 1])
+                            with col1:
+                                if st.button(f"Wait {wait_time:.0f}s and Retry", use_container_width=True, key="wait_retry"):
+                                    import time
+                                    with st.spinner(f"Waiting {wait_time:.0f} seconds..."):
+                                        time.sleep(wait_time + 1)
+                                    st.rerun()
+                            with col2:
+                                if st.button("Retry Now", use_container_width=True, key="retry_now"):
+                                    st.rerun()
+
+                    # Request too large errors (413)
+                    elif "413" in error_msg or "too large" in error_msg.lower() or "request entity too large" in error_msg.lower():
+                        st.markdown("""
+                        **The page content is too large for the API to process.**
+
+                        This happens with complex data tables or pages with lots of content.
+
+                        **Solutions:**
+                        """)
+
+                        # Try to extract main URL
+                        if "/table/" in url or "/tableView" in url:
+                            parts = url.split("/")
+                            main_url = "/".join(parts[:3])
+                            st.markdown("1. **Try the main website instead:**")
+                            if st.button(f"Try {main_url}", use_container_width=True, key="try_main"):
+                                st.session_state.selected_url = main_url
+                                st.rerun()
+                        else:
+                            st.markdown("""
+                            1. **Try the homepage of the website**
+                            2. **Try a simpler URL** - Avoid specific table views or large data pages
+                            3. **Use the example URLs** - They're tested and work well
+                            """)
+
+                    # Timeout errors
+                    elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                        st.markdown("""
+                        **The extraction took too long (exceeded 3 minutes).**
+
+                        **What you can do:**
+                        1. **Try the main website URL** - If you used a specific page, try the homepage instead
+                        2. **Verify the URL is accessible** - Check if the page loads in your browser
+                        3. **Wait and retry** - The site may be temporarily slow
+                        """)
+
+                        if "/api/" in url:
+                            main_url = url.split("/api/")[0]
+                            st.info(f"**API Endpoint Detected:** Your URL contains `/api/`. Try: `{main_url}`")
+
+                    # API endpoint errors
+                    elif "/api/" in url:
+                        main_url = url.split("/api/")[0]
+                        st.markdown(f"**API Endpoint Detected:** Your URL appears to be an API endpoint. **Suggested URL:** `{main_url}`")
+                        if st.button(f"Try {main_url}", use_container_width=True):
                             st.session_state.selected_url = main_url
                             st.rerun()
-                    else:
+
+                    # Connection errors
+                    elif "connection" in error_msg.lower():
                         st.markdown("""
-                        1. **Try the homepage of the website**
-                        2. **Try a simpler URL** - Avoid specific table views or large data pages
-                        3. **Use the example URLs** - They're tested and work well
+                        **Connection Error:** Check your internet connection and verify the URL is correct.
                         """)
 
-                # Timeout errors
-                elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
-                    st.markdown("""
-                    **The extraction took too long (exceeded 3 minutes).**
-
-                    **What you can do:**
-                    1. **Try the main website URL** - If you used a specific page, try the homepage instead
-                    2. **Verify the URL is accessible** - Check if the page loads in your browser
-                    3. **Wait and retry** - The site may be temporarily slow
-                    """)
-
-                    if "/api/" in url:
-                        main_url = url.split("/api/")[0]
-                        st.info(f"""
-                        **API Endpoint Detected:**
-                        Your URL contains `/api/` which suggests it's a data endpoint, not a webpage.
-
-                        Try this instead: `{main_url}`
+                    # Authentication errors
+                    elif "api key" in error_msg.lower() or "authentication" in error_msg.lower():
+                        st.markdown("""
+                        **API Key Issue:** Check your `.env` file and ensure `GROQ_API_KEY` is set correctly.
                         """)
 
-                # API endpoint errors
-                elif "/api/" in url:
-                    main_url = url.split("/api/")[0]
-                    st.markdown(f"""
-                    **API Endpoint Detected:**
+                    # Generic errors
+                    else:
+                        st.markdown("**Common Solutions:** Click Extract again, wait 30 seconds, or try a different URL.")
+                        if st.button("Retry Extraction", use_container_width=True):
+                            st.rerun()
 
-                    Your URL appears to be an API endpoint (contains `/api/`).
-                    Browser automation works best with regular web pages.
+                    # Always show technical details in expander with full trace
+                    with st.expander("Show full technical error details"):
+                        st.code(error_msg)
+                        st.json({
+                            "success": result.get("success"),
+                            "error": result.get("error"),
+                            "content": result.get("content", "None")[:200] if result.get("content") else "None",
+                            "reasoning": result.get("reasoning", "None")[:200] if result.get("reasoning") else "None",
+                            "executed_tools": len(result.get("executed_tools", [])),
+                        })
 
-                    **Suggested URL:** `{main_url}`
+            except TimeoutError:
+                st.error("Request Timed Out")
+                st.markdown("**The extraction exceeded the time limit.** Try the main website URL or use one of the example URLs.")
 
-                    Click the button below to try the main website:
-                    """)
-                    if st.button(f"Try {main_url}", use_container_width=True):
-                        st.session_state.selected_url = main_url
-                        st.rerun()
-
-                # Connection errors
-                elif "connection" in error_msg.lower():
-                    st.markdown("""
-                    **Connection Error:**
-
-                    **What you can do:**
-                    1. **Check your internet connection**
-                    2. **Verify the URL is correct** - Make sure there are no typos
-                    3. **Try a known working URL** - Use one of the examples above
-                    """)
-
-                # Authentication errors
-                elif "api key" in error_msg.lower() or "authentication" in error_msg.lower():
-                    st.markdown("""
-                    **API Key Issue:**
-
-                    **What you can do:**
-                    1. **Check your `.env` file** - Ensure `GROQ_API_KEY` is set correctly
-                    2. **Restart the application** - Sometimes environment changes need a restart
-                    3. **Verify your API key** - Make sure it's valid and active
-                    """)
-
-                # Generic errors
-                else:
-                    st.markdown("""
-                    **Common Solutions:**
-                    1. **Click Extract again** - Sometimes a retry works
-                    2. **Wait 30 seconds** - The server might be rate limiting
-                    3. **Try a different URL** - Test with one of the example URLs above
-                    4. **Check the URL in browser** - Make sure it loads normally
-                    """)
-
-                    # Add retry button
-                    if st.button("🔄 Retry Extraction", use_container_width=True):
-                        st.rerun()
-
-                # Always show technical details in expander with full trace
-                with st.expander("Show full technical error details"):
-                    st.code(error_msg)
-
-                    # Show result object for debugging
-                    st.json({
-                        "success": result.get("success"),
-                        "error": result.get("error"),
-                        "content": result.get("content", "None")[:200] if result.get("content") else "None",
-                        "reasoning": result.get("reasoning", "None")[:200] if result.get("reasoning") else "None",
-                        "executed_tools": len(result.get("executed_tools", [])),
-                    })
-
-        except TimeoutError:
-            st.error("Request Timed Out")
-            st.markdown("""
-            **The extraction exceeded the time limit.**
-
-            **What you can do:**
-            1. **Try the main website URL** - Avoid specific page or API endpoints
-            2. **Use one of the example URLs** - These are known to work well
-            3. **Try again** - The site may be temporarily slow
-            """)
-
-        except Exception as e:
-            st.error("An Unexpected Error Occurred")
-            st.markdown("""
-            **What you can do:**
-            1. **Verify your API key** - Check the `.env` file
-            2. **Check your internet connection**
-            3. **Try a simpler URL** - Test with an example URL first
-            """)
-            with st.expander("Show technical error details"):
-                st.exception(e)
+            except Exception as e:
+                st.error("An Unexpected Error Occurred")
+                st.markdown("**What you can do:** Verify your API key, check your internet connection, or try a simpler URL.")
+                with st.expander("Show technical error details"):
+                    st.exception(e)
 
     # Footer
     st.divider()

@@ -11,6 +11,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -59,3 +60,6 @@ dmypy.json
 # Logs
 *.log
 logs/
+
+# User credentials
+users.json

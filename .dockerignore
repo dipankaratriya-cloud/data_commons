@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv
+venv
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Documentation
+*.md
+LICENSE_FINDER_COMPLETE_GUIDE.html
+
+# Temporary and debug files
+debug_output.json
+*.log
+*.csv
+
+# Other directories not needed in container
+frontend/
+scripts/
+
+# User credentials
+users.json
