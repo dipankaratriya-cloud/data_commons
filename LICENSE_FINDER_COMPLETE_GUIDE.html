@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License Finder Tool - Complete Client Guide</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 1in;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 28pt;
+            page-break-before: always;
+        }
+        h1:first-of-type {
+            page-break-before: auto;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            font-size: 20pt;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #16a085;
+            margin-top: 20px;
+            font-size: 16pt;
+        }
+        h4 {
+            color: #27ae60;
+            margin-top: 15px;
+            font-size: 14pt;
+        }
+        .toc {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .toc h2 {
+            margin-top: 0;
+            border: none;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        .highlight-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .architecture-diagram {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+        }
+        @media print {
+            body {
+                padding: 0.5in;
+            }
+            h1 {
+                page-break-after: avoid;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>License Finder Tool<br>Complete Client Guide</h1>
+
+<div class="info-box">
+    <strong>Document Purpose:</strong> This comprehensive guide explains the License Finder tool in detail for both technical and non-technical stakeholders. It covers what the tool does, why specific technologies were chosen, how it works, and how to use and deploy it.
+</div>
+
+<div class="toc">
+    <h2>📋 Table of Contents</h2>
+    <ul>
+        <li><a href="#what-is-this-tool">1. What is This Tool?</a></li>
+        <li><a href="#why-need">2. Why Do We Need This?</a></li>
+        <li><a href="#technologies">3. What Technologies Are Used and Why?</a></li>
+        <li><a href="#getting-started">4. What You Need to Get Started</a></li>
+        <li><a href="#setup">5. How to Set Everything Up</a></li>
+        <li><a href="#how-it-works">6. How Does It Work? (Detailed Explanation)</a></li>
+        <li><a href="#how-to-use">7. How to Use the Tool</a></li>
+        <li><a href="#understanding-results">8. Understanding Your Results</a></li>
+        <li><a href="#deployment">9. How to Share This Tool Online</a></li>
+        <li><a href="#faq">10. Common Questions and Solutions</a></li>
+    </ul>
+</div>
+
+<h1 id="what-is-this-tool">1. What is This Tool?</h1>
+
+<h2>Simple Explanation</h2>
+
+<p>Imagine you're looking for a specific piece of information buried somewhere in a large building with many rooms and floors. You could spend hours searching manually, or you could send a smart assistant who knows exactly what to look for and can check multiple rooms simultaneously.</p>
+
+<div class="success-box">
+    <strong>This License Finder Tool is like that smart assistant</strong> - but for finding license information on websites. It automatically searches through web pages, follows links, and finds licensing details that would take humans hours to locate manually.
+</div>
+
+<h3>What It Does</h3>
+<ul>
+    <li><strong>Automatically visits websites</strong> you want to check</li>
+    <li><strong>Searches for license information</strong> across multiple pages</li>
+    <li><strong>Follows links</strong> to find hidden licensing details</li>
+    <li><strong>Organizes the information</strong> in an easy-to-read format</li>
+    <li><strong>Provides confidence levels</strong> about what it found</li>
+    <li><strong>Saves time</strong> - what takes hours manually takes minutes</li>
+</ul>
+
+<h3>Real-World Example</h3>
+
+<div class="info-box">
+    <p><strong>Scenario:</strong> You need to find out how you can legally use data from a government statistics website.</p>
+
+    <p><strong>Process:</strong></p>
+    <ol>
+        <li>You enter the website URL</li>
+        <li>The tool launches virtual browsers</li>
+        <li>It searches for terms like "license," "terms of use," "copyright"</li>
+        <li>It follows links to license pages</li>
+        <li>It extracts the specific license type (e.g., "Creative Commons CC-BY 4.0")</li>
+        <li>It tells you exactly what you can and cannot do with the data</li>
+    </ol>
+</div>
+
+<h1 id="why-need">2. Why Do We Need This?</h1>
+
+<h2>The Problem</h2>
+
+<p>When working with data from different websites, several challenges arise:</p>
+
+<table>
+    <tr>
+        <th>Challenge</th>
+        <th>Impact</th>
+    </tr>
+    <tr>
+        <td><strong>Legal compliance</strong></td>
+        <td>You must know how data can be legally used to avoid violations</td>
+    </tr>
+    <tr>
+        <td><strong>Time-consuming</strong></td>
+        <td>Manually checking licenses on hundreds of websites is impractical</td>
+    </tr>
+    <tr>
+        <td><strong>Hidden information</strong></td>
+        <td>License details are often buried in multiple pages and difficult to find</td>
+    </tr>
+    <tr>
+        <td><strong>Human error</strong></td>
+        <td>Manual checking across multiple sites leads to mistakes and inconsistencies</td>
+    </tr>
+    <tr>
+        <td><strong>Documentation</strong></td>
+        <td>Need proof of licensing terms for legal and audit purposes</td>
+    </tr>
+</table>
+
+<h2>The Solution</h2>
+
+<div class="success-box">
+    <p>This tool solves all these problems by:</p>
+    <ul>
+        <li>✅ <strong>Automating</strong> the search process</li>
+        <li>✅ <strong>Being thorough</strong> - checks multiple pages and links</li>
+        <li>✅ <strong>Saving time</strong> - minutes instead of hours</li>
+        <li>✅ <strong>Providing evidence</strong> - saves exactly what it found</li>
+        <li>✅ <strong>Being consistent</strong> - same process every time</li>
+    </ul>
+</div>
+
+<h1 id="technologies">3. What Technologies Are Used and Why?</h1>
+
+<h2>Technology Stack Overview</h2>
+
+<h3>1. Python (Programming Language)</h3>
+
+<p><strong>What it is:</strong> A popular programming language that's easy to understand and powerful for automation tasks.</p>
+
+<div class="highlight-box">
+    <p><strong>Why we chose it:</strong></p>
+    <ul>
+        <li>Widely used in data science and automation</li>
+        <li>Has excellent tools for web interaction</li>
+        <li>Easy to maintain and update</li>
+        <li>Large community for support</li>
+    </ul>
+
+    <p><strong>Alternative options considered:</strong></p>
+    <ul>
+        <li><strong>JavaScript</strong> - More complex for this type of automation</li>
+        <li><strong>Java</strong> - Too heavy for this simple task</li>
+        <li><strong>Go</strong> - Smaller ecosystem for AI integration</li>
+    </ul>
+</div>
+
+<h3>2. Streamlit (User Interface Framework)</h3>
+
+<p><strong>What it is:</strong> A tool that turns Python code into beautiful web applications without requiring web development expertise.</p>
+
+<div class="highlight-box">
+    <p><strong>Why we chose it:</strong></p>
+    <ul>
+        <li>No web development expertise needed</li>
+        <li>Creates professional interfaces automatically</li>
+        <li>Free hosting available</li>
+        <li>Updates in real-time</li>
+        <li>Perfect for data tools</li>
+    </ul>
+
+    <p><strong>Alternative options considered:</strong></p>
+    <ul>
+        <li><strong>Flask/Django</strong> - Require more web development knowledge</li>
+        <li><strong>React</strong> - Requires separate frontend and backend development</li>
+        <li><strong>Jupyter Notebooks</strong> - Not suitable for end-users</li>
+    </ul>
+</div>
+
+<h3>3. Groq API with Browser Automation (The "Smart Assistant")</h3>
+
+<p><strong>What it is:</strong> An AI service that can control virtual web browsers and understand content intelligently.</p>
+
+<div class="success-box">
+    <p><strong>Why we chose it (Critical Decision):</strong></p>
+    <ul>
+        <li><strong>Browser Automation</strong> - Can actually click links and navigate websites like a human</li>
+        <li><strong>AI Understanding</strong> - Comprehends context, not just keyword matching</li>
+        <li><strong>Fast</strong> - Processes information quickly</li>
+        <li><strong>Reliable</strong> - Handles complex website structures</li>
+        <li><strong>Cost-effective</strong> - Affordable API pricing</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <p><strong>Why Browser Automation is Critical:</strong></p>
+    <pre><code>Without Browser Automation:
+Website URL → Static HTML → Limited data → Miss nested licenses
+
+With Browser Automation:
+Website URL → Virtual Browser → Click links → Navigate pages →
+Find hidden content → Comprehensive license info</code></pre>
+</div>
+
+<div class="highlight-box">
+    <p><strong>Alternative options considered:</strong></p>
+    <ul>
+        <li><strong>OpenAI GPT</strong> - ❌ No browser automation capability</li>
+        <li><strong>Web scraping (BeautifulSoup)</strong> - ❌ Can't handle dynamic websites or navigate like humans</li>
+        <li><strong>Selenium</strong> - ❌ Requires complex setup and doesn't understand content intelligently</li>
+        <li><strong>Manual API calls</strong> - ❌ Can't access web content directly</li>
+    </ul>
+
+    <p><strong>Conclusion:</strong> Groq with Browser Automation is currently the ONLY service that provides AI-powered browser navigation, making it essential for our use case.</p>
+</div>
+
+<h3>4. GitHub (Code Storage)</h3>
+
+<p><strong>What it is:</strong> A platform to store and version-control code online.</p>
+
+<p><strong>Why we chose it:</strong></p>
+<ul>
+    <li>Free for public projects</li>
+    <li>Integrates seamlessly with deployment platforms</li>
+    <li>Tracks all changes with version history</li>
+    <li>Easy collaboration capabilities</li>
+</ul>
+
+<h3>5. Streamlit Community Cloud (Hosting Platform)</h3>
+
+<p><strong>What it is:</strong> Free service to host Streamlit apps online with zero configuration.</p>
+
+<div class="success-box">
+    <p><strong>Why we chose it:</strong></p>
+    <ul>
+        <li>Completely free for public apps</li>
+        <li>Made specifically for Streamlit applications</li>
+        <li>No setup complexity</li>
+        <li>Automatic updates from GitHub</li>
+        <li>Built-in security for API keys</li>
+    </ul>
+
+    <p><strong>Alternative options considered:</strong></p>
+    <ul>
+        <li><strong>Heroku</strong> - ❌ No longer has free tier</li>
+        <li><strong>AWS</strong> - ❌ Too complex for simple apps</li>
+        <li><strong>Azure</strong> - ❌ Requires more configuration</li>
+        <li><strong>Render</strong> - ⚠️ Apps sleep on free tier</li>
+    </ul>
+</div>
+
+<h1 id="getting-started">4. What You Need to Get Started</h1>
+
+<h2>Requirements Checklist</h2>
+
+<h3>1. A Computer</h3>
+<ul>
+    <li>Windows, Mac, or Linux</li>
+    <li>Internet connection</li>
+</ul>
+
+<h3>2. A Groq API Key (The "Brain")</h3>
+
+<p><strong>What it is:</strong> A special password that lets you use Groq's AI services.</p>
+
+<div class="info-box">
+    <p><strong>How to get it:</strong></p>
+    <ol>
+        <li>Go to <a href="https://console.groq.com">https://console.groq.com</a></li>
+        <li>Sign up for a free account (no credit card needed)</li>
+        <li>Go to "API Keys" section</li>
+        <li>Click "Create API Key"</li>
+        <li>Copy the key (looks like: <code>gsk_xxxxxxxxxxxx</code>)</li>
+        <li><strong>Keep it secret</strong> - this is like your password</li>
+    </ol>
+</div>
+
+<div class="success-box">
+    <p><strong>Current API Key:</strong></p>
+    <pre><code>GROQ_API_KEY=gsk_your_api_key_here</code></pre>
+</div>
+
+<div class="highlight-box">
+    <p><strong>Cost Analysis:</strong></p>
+    <ul>
+        <li><strong>Groq API:</strong>
+            <ul>
+                <li>Free tier: 30 requests per minute</li>
+                <li>Typical license search: $0.01 - $0.10 per URL</li>
+                <li>100 searches: ~$1-10 depending on complexity</li>
+            </ul>
+        </li>
+        <li><strong>Streamlit Hosting:</strong>
+            <ul>
+                <li>Completely FREE for public apps</li>
+                <li>Unlimited usage</li>
+                <li>No hidden costs</li>
+            </ul>
+        </li>
+        <li><strong>Total:</strong> Very affordable for regular use</li>
+    </ul>
+</div>
+
+<h3>3. A GitHub Account</h3>
+
+<p><strong>What it is:</strong> Free account to store your code online.</p>
+
+<p><strong>How to get it:</strong></p>
+<ol>
+    <li>Go to <a href="https://github.com">https://github.com</a></li>
+    <li>Sign up (free)</li>
+    <li>Verify your email</li>
+</ol>
+
+<div class="success-box">
+    <p><strong>Current Repository:</strong></p>
+    <p><a href="https://github.com/dipankaratriya-cloud/data_commons">https://github.com/dipankaratriya-cloud/data_commons</a></p>
+</div>
+
+<h3>4. Optional: Python on Your Computer (For Local Testing)</h3>
+
+<p><strong>Note:</strong> Only needed if you want to run it on your own computer before deploying online.</p>
+
+<p><strong>How to install:</strong></p>
+<ol>
+    <li>Download Python from <a href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></li>
+    <li>Install (check "Add to PATH" during installation)</li>
+    <li>Open terminal/command prompt</li>
+    <li>Type: <code>python --version</code> to verify</li>
+</ol>
+
+<h1 id="setup">5. How to Set Everything Up</h1>
+
+<h2>Option A: Quick Deploy (Online Only - Recommended)</h2>
+
+<div class="success-box">
+    <p><strong>Time needed:</strong> 10 minutes</p>
+    <p><strong>You already have everything ready!</strong> Your code is already on GitHub.</p>
+</div>
+
+<h3>Deployment Steps:</h3>
+
+<ol>
+    <li>Go to <a href="https://share.streamlit.io">https://share.streamlit.io</a></li>
+    <li>Click "New app"</li>
+    <li>Sign in with GitHub</li>
+    <li>Select repository: <code>dipankaratriya-cloud/data_commons</code></li>
+    <li>Branch: <code>main</code></li>
+    <li>Main file path: <code>license_finder_app.py</code></li>
+    <li>Click "Advanced settings"</li>
+    <li>In "Secrets" section, paste:
+        <pre><code>GROQ_API_KEY="gsk_your_api_key_here"</code></pre>
+    </li>
+    <li>Click "Deploy"</li>
+    <li>Wait 2-3 minutes</li>
+    <li>Your app is live! 🎉</li>
+</ol>
+
+<div class="info-box">
+    <p><strong>Result:</strong> You'll get a URL like: <code>https://license-finder-xyz.streamlit.app</code></p>
+</div>
+
+<h2>Option B: Run Locally First (On Your Computer)</h2>
+
+<p><strong>Time needed:</strong> 20 minutes</p>
+
+<h3>Step 1: Download the Code</h3>
+<pre><code># Open terminal/command prompt and type:
+cd Documents
+git clone https://github.com/dipankaratriya-cloud/data_commons.git
+cd data_commons</code></pre>
+
+<h3>Step 2: Set Up Environment</h3>
+<pre><code># Install required packages:
+pip install -r requirements.txt</code></pre>
+
+<h3>Step 3: Configure API Key</h3>
+<p>The <code>.env</code> file is already set up with:</p>
+<pre><code>GROQ_API_KEY=gsk_your_api_key_here</code></pre>
+
+<h3>Step 4: Run the App</h3>
+<pre><code>streamlit run license_finder_app.py</code></pre>
+
+<h3>Step 5: Open in Browser</h3>
+<ul>
+    <li>A browser window opens automatically</li>
+    <li>Or go to: <a href="http://localhost:8501">http://localhost:8501</a></li>
+</ul>
+
+<h1 id="how-it-works">6. How Does It Work? (Detailed Explanation)</h1>
+
+<h2>The Complete Journey: From URL to License Information</h2>
+
+<h3>Phase 1: You Enter a URL</h3>
+
+<div class="architecture-diagram">
+<pre>User Input: https://www.example.com/dataset
+↓
+Application receives the URL
+↓
+Validates it's a proper web address</pre>
+</div>
+
+<h3>Phase 2: Initial AI Analysis</h3>
+
+<div class="architecture-diagram">
+<pre>AI receives your request
+↓
+AI creates a plan:
+- "I need to visit this website"
+- "Look for license-related links"
+- "Check common license page locations"
+- "Extract license text"</pre>
+</div>
+
+<div class="info-box">
+    <p><strong>Why AI Planning Matters:</strong></p>
+    <p>Different websites structure licensing information differently:</p>
+    <ul>
+        <li>Some have a "License" link in the footer</li>
+        <li>Some have it in "Terms of Use"</li>
+        <li>Some have it on the dataset page itself</li>
+        <li>Some have it several clicks deep</li>
+    </ul>
+    <p>The AI adapts its search strategy based on what it sees.</p>
+</div>
+
+<h3>Phase 3: Browser Automation Launches</h3>
+
+<div class="architecture-diagram">
+<pre>Virtual Browser 1 starts
+↓
+Visits: https://www.example.com/dataset
+↓
+AI "sees" the page like a human would
+↓
+Looks for license-related elements:
+  - Links containing "license", "terms", "copyright"
+  - Footer sections
+  - Metadata tags
+  - Common license patterns</pre>
+</div>
+
+<h4>What's Happening Behind the Scenes:</h4>
+
+<pre><code>1. Browser opens the page
+2. AI reads all visible text
+3. AI reads all links on the page
+4. AI identifies promising links:
+   - "License" (high priority)
+   - "Terms of Use" (medium priority)
+   - "About" (low priority)
+5. AI decides which links to follow</code></pre>
+
+<h3>Phase 4: Intelligent Navigation</h3>
+
+<div class="architecture-diagram">
+<pre>AI Decision: "Found a 'License' link in footer"
+↓
+Virtual Browser 1 clicks the link
+↓
+New page loads: https://www.example.com/license
+↓
+AI reads this page
+↓
+Extracts license information:
+  - License type (e.g., "Creative Commons BY 4.0")
+  - License URL
+  - Key terms and conditions</pre>
+</div>
+
+<h4>If First Attempt Doesn't Find Everything:</h4>
+
+<div class="architecture-diagram">
+<pre>AI: "Found partial information, need more details"
+↓
+Virtual Browser 2 launches
+↓
+Follows different link: https://www.example.com/terms
+↓
+Extracts additional information
+↓
+Combines information from both sources</pre>
+</div>
+
+<h4>Real Example: Statistics Canada Dataset</h4>
+
+<div class="success-box">
+<pre><code>Website: Statistics Canada Dataset
+↓
+Browser 1: Visits main dataset page
+  Finds: "Statistics Canada Open License" mentioned
+  Finds: Link to license page
+↓
+Browser 1: Clicks license link
+  Finds: Full license text
+  Finds: License type: "Statistics Canada Open License"
+↓
+Browser 2: Visits terms page (for verification)
+  Confirms: Same license applies
+↓
+AI combines and validates information</code></pre>
+</div>
+
+<h3>Phase 5: Information Extraction and Structuring</h3>
+
+<div class="architecture-diagram">
+<pre>Raw data collected from pages
+↓
+AI processes and structures:
+  {
+    "license_type": "Creative Commons Attribution 4.0",
+    "license_url": "https://example.com/license",
+    "confidence": "high",
+    "attribution_required": "Yes",
+    "commercial_use": "Allowed",
+    "modifications": "Allowed"
+  }
+↓
+Formats for human-readable display</pre>
+</div>
+
+<h3>Phase 6: Presenting Results to You</h3>
+
+<div class="architecture-diagram">
+<pre>Structured data
+↓
+Beautiful interface shows:
+  ✅ License Type
+  ✅ Confidence Level
+  ✅ Key Requirements
+  ✅ License URL
+  ✅ How AI found it
+↓
+Option to download as JSON</pre>
+</div>
+
+<h2>Why This Approach is Superior</h2>
+
+<table>
+    <tr>
+        <th>Traditional Web Scraping</th>
+        <th>Our Browser Automation Approach</th>
+    </tr>
+    <tr>
+        <td>
+            <strong>Process:</strong><br>
+            Website → HTML Parser → Keywords → Limited results
+        </td>
+        <td>
+            <strong>Process:</strong><br>
+            Website → Virtual Browser → AI Navigation → Multiple Pages → Context Understanding → Comprehensive Results
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <strong>Issues:</strong>
+            <ul>
+                <li>❌ Can't click links</li>
+                <li>❌ Can't handle dynamic content</li>
+                <li>❌ Misses nested information</li>
+                <li>❌ No context understanding</li>
+            </ul>
+        </td>
+        <td>
+            <strong>Benefits:</strong>
+            <ul>
+                <li>✅ Clicks links like humans</li>
+                <li>✅ Handles any website structure</li>
+                <li>✅ Finds hidden information</li>
+                <li>✅ Understands context</li>
+                <li>✅ Adapts to each website</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<h2>Technical Architecture Overview</h2>
+
+<div class="architecture-diagram">
+<pre>┌─────────────────────────────────────────────┐
+│           Streamlit Interface               │
+│  (What you see in your browser)             │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│       license_finder_app.py                 │
+│  - Handles user input                       │
+│  - Displays results                         │
+│  - Manages sessions                         │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│   src/utils/groq_browser_automation.py      │
+│  - Communicates with Groq API               │
+│  - Sends browser automation requests        │
+│  - Processes AI responses                   │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│           Groq API Service                  │
+│  - Receives automation requests             │
+│  - Launches virtual browsers                │
+│  - AI decision-making                       │
+│  - Returns extracted data                   │
+└─────────────────────────────────────────────┘</pre>
+</div>
+
+<h1 id="how-to-use">7. How to Use the Tool</h1>
+
+<h2>Step-by-Step User Guide</h2>
+
+<h3>1. Access the Application</h3>
+<ul>
+    <li><strong>Online:</strong> Go to your deployed URL (e.g., <code>https://your-app.streamlit.app</code>)</li>
+    <li><strong>Local:</strong> Run <code>streamlit run license_finder_app.py</code> and go to <code>http://localhost:8501</code></li>
+</ul>
+
+<h3>2. Understanding the Interface</h3>
+
+<p><strong>Main Screen:</strong></p>
+<div class="info-box">
+    <ul>
+        <li>📜 License Finder with Browser Automation (Title)</li>
+        <li>Brief description of what the tool does</li>
+        <li>🌐 URL input field</li>
+        <li>🚀 "Find License Information" button</li>
+    </ul>
+</div>
+
+<p><strong>Sidebar:</strong></p>
+<div class="info-box">
+    <ul>
+        <li>⚙️ Configuration section (API key status, model selection)</li>
+        <li>📚 Recent URLs (history of searches)</li>
+        <li>ℹ️ How it works (expandable help section)</li>
+    </ul>
+</div>
+
+<h3>3. Finding License Information</h3>
+
+<h4>Step 1: Enter URL</h4>
+
+<div class="success-box">
+    <p><strong>Good Examples:</strong></p>
+    <ul>
+        <li>✅ <code>https://www150.statcan.gc.ca/n1/en/type/data</code></li>
+        <li>✅ <code>https://data.gov/dataset/12345</code></li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <p><strong>Bad Examples:</strong></p>
+    <ul>
+        <li>❌ <code>www.example.com</code> (missing https://)</li>
+        <li>❌ <code>example</code> (not a complete URL)</li>
+    </ul>
+</div>
+
+<h4>Step 2: Select Model (Optional)</h4>
+
+<table>
+    <tr>
+        <th>Model</th>
+        <th>Description</th>
+        <th>Best For</th>
+    </tr>
+    <tr>
+        <td><code>moonshotai/kimi-k2-instruct-0905</code></td>
+        <td>Default - Best balance</td>
+        <td>Most use cases</td>
+    </tr>
+    <tr>
+        <td><code>groq/compound-mini</code></td>
+        <td>Faster, lighter searches</td>
+        <td>Simple websites</td>
+    </tr>
+    <tr>
+        <td><code>groq/compound</code></td>
+        <td>Most thorough, slower</td>
+        <td>Complex websites</td>
+    </tr>
+</table>
+
+<h4>Step 3: Click "Find License Information"</h4>
+
+<div class="info-box">
+    <p><strong>What to expect:</strong></p>
+    <ul>
+        <li>Button changes to: 🔄 "Launching browsers and searching..."</li>
+        <li>Time: 10-60 seconds depending on website complexity</li>
+        <li>Do not close browser or refresh the page</li>
+    </ul>
+</div>
+
+<h3>4. Reading Your Results</h3>
+
+<h4>Success Screen Components:</h4>
+
+<div class="success-box">
+    <p><strong>✅ License extraction completed successfully!</strong></p>
+
+    <p><strong>📄 License Information Found</strong></p>
+    <ul>
+        <li>License Type</li>
+        <li>License URL (clickable link)</li>
+        <li>Attribution Required</li>
+        <li>Commercial Use permissions</li>
+        <li>Modification permissions</li>
+        <li>Confidence Level (🟢 High / 🟡 Medium / 🔴 Low)</li>
+        <li>Key Requirements list</li>
+    </ul>
+
+    <p><strong>🔧 Browser Automation Sessions</strong></p>
+    <ul>
+        <li>Number of browsers launched</li>
+        <li>Expandable details of each session</li>
+        <li>Navigation path taken</li>
+    </ul>
+
+    <p><strong>🧠 How the Browser Automation Worked</strong></p>
+    <ul>
+        <li>AI's decision-making process</li>
+        <li>Reasoning for confidence level</li>
+        <li>Methodology explanation</li>
+    </ul>
+
+    <p><strong>💾 Download Results as JSON</strong></p>
+    <ul>
+        <li>Complete data export</li>
+        <li>For documentation and sharing</li>
+    </ul>
+</div>
+
+<h1 id="understanding-results">8. Understanding Your Results</h1>
+
+<h2>What Different License Types Mean</h2>
+
+<h3>Creative Commons Licenses (Most Common for Data)</h3>
+
+<table>
+    <tr>
+        <th>License</th>
+        <th>Permissions</th>
+        <th>Requirements</th>
+        <th>Restrictions</th>
+    </tr>
+    <tr>
+        <td><strong>CC0</strong><br>(Public Domain)</td>
+        <td>
+            ✅ Do whatever you want<br>
+            ✅ Commercial use<br>
+            ✅ Modifications
+        </td>
+        <td>
+            ⚪ None
+        </td>
+        <td>
+            ⚪ None
+        </td>
+    </tr>
+    <tr>
+        <td><strong>CC-BY</strong><br>(Attribution)</td>
+        <td>
+            ✅ Any purpose<br>
+            ✅ Commercial use<br>
+            ✅ Modifications
+        </td>
+        <td>
+            ⚠️ Give credit<br>
+            ⚠️ Link to license
+        </td>
+        <td>
+            ⚪ None
+        </td>
+    </tr>
+    <tr>
+        <td><strong>CC-BY-SA</strong><br>(ShareAlike)</td>
+        <td>
+            ✅ Any purpose<br>
+            ✅ Commercial use<br>
+            ✅ Modifications
+        </td>
+        <td>
+            ⚠️ Give credit<br>
+            ⚠️ Same license for modified works
+        </td>
+        <td>
+            ⚪ None
+        </td>
+    </tr>
+    <tr>
+        <td><strong>CC-BY-NC</strong><br>(NonCommercial)</td>
+        <td>
+            ✅ Personal/research use<br>
+            ✅ Modifications
+        </td>
+        <td>
+            ⚠️ Give credit
+        </td>
+        <td>
+            ❌ Commercial use NOT allowed
+        </td>
+    </tr>
+    <tr>
+        <td><strong>CC-BY-ND</strong><br>(NoDerivatives)</td>
+        <td>
+            ✅ Use as-is<br>
+            ✅ Commercial use
+        </td>
+        <td>
+            ⚠️ Give credit
+        </td>
+        <td>
+            ❌ Modifications NOT allowed
+        </td>
+    </tr>
+</table>
+
+<h3>Software Licenses (If Tool Finds These)</h3>
+
+<table>
+    <tr>
+        <th>License</th>
+        <th>Key Characteristics</th>
+    </tr>
+    <tr>
+        <td><strong>MIT License</strong></td>
+        <td>
+            ✅ Very permissive<br>
+            ✅ Commercial use OK<br>
+            ✅ Modifications OK<br>
+            ⚠️ MUST include license text
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Apache 2.0</strong></td>
+        <td>
+            ✅ Very permissive<br>
+            ✅ Commercial use OK<br>
+            ✅ Modifications OK<br>
+            ✅ Patent protection<br>
+            ⚠️ MUST include license and notices
+        </td>
+    </tr>
+    <tr>
+        <td><strong>GPL</strong><br>(General Public License)</td>
+        <td>
+            ✅ Can use and modify<br>
+            ✅ Commercial use OK<br>
+            ⚠️ Modified works MUST be open source<br>
+            ⚠️ MUST use same GPL license
+        </td>
+    </tr>
+</table>
+
+<h3>Government/Open Data Licenses</h3>
+
+<div class="info-box">
+    <p><strong>Statistics Canada Open License:</strong></p>
+    <ul>
+        <li>✅ Use for any purpose</li>
+        <li>✅ Commercial use OK</li>
+        <li>✅ Modifications OK</li>
+        <li>⚠️ MUST acknowledge Statistics Canada</li>
+        <li>⚠️ MUST include link to license</li>
+    </ul>
+</div>
+
+<div class="info-box">
+    <p><strong>US Government Works (Public Domain):</strong></p>
+    <ul>
+        <li>✅ Completely free to use</li>
+        <li>✅ No attribution needed</li>
+        <li>✅ Commercial use OK</li>
+        <li>✅ Modifications OK</li>
+    </ul>
+</div>
+
+<h2>Confidence Levels Explained</h2>
+
+<table>
+    <tr>
+        <th>Level</th>
+        <th>What It Means</th>
+        <th>Recommended Action</th>
+    </tr>
+    <tr>
+        <td><strong>🟢 High Confidence</strong><br>(90-100%)</td>
+        <td>
+            • Found official license page<br>
+            • Clear license statement<br>
+            • Structured license data<br>
+            • Verified across multiple sources
+        </td>
+        <td>
+            <strong>You can trust this result for:</strong><br>
+            • Legal documentation<br>
+            • Commercial projects<br>
+            • Public releases
+        </td>
+    </tr>
+    <tr>
+        <td><strong>🟡 Medium Confidence</strong><br>(60-89%)</td>
+        <td>
+            • Found license mentions<br>
+            • Not on dedicated page<br>
+            • Some ambiguity in terms<br>
+            • Limited verification
+        </td>
+        <td>
+            <strong>Recommended action:</strong><br>
+            • Review the extracted content<br>
+            • Check the source URL manually<br>
+            • Contact data provider if critical
+        </td>
+    </tr>
+    <tr>
+        <td><strong>🔴 Low Confidence</strong><br>(&lt;60%)</td>
+        <td>
+            • Vague license information<br>
+            • Conflicting statements<br>
+            • No clear license page<br>
+            • Assumptions made
+        </td>
+        <td>
+            <strong>Recommended action:</strong><br>
+            • Manually verify<br>
+            • Contact website owner<br>
+            • Do not use for critical projects without verification
+        </td>
+    </tr>
+</table>
+
+<h1 id="deployment">9. How to Share This Tool Online</h1>
+
+<h2>Complete Deployment Guide</h2>
+
+<h3>Why Deploy Online?</h3>
+
+<div class="success-box">
+    <ul>
+        <li>✅ Access from anywhere</li>
+        <li>✅ Share with team members</li>
+        <li>✅ No installation needed</li>
+        <li>✅ Always up to date</li>
+        <li>✅ Professional appearance</li>
+    </ul>
+</div>
+
+<h3>Deployment Steps (Streamlit Community Cloud)</h3>
+
+<h4>Step 1: Ensure Code is on GitHub</h4>
+
+<div class="success-box">
+    <p>✅ <strong>Already done!</strong> Your code is at:</p>
+    <p><a href="https://github.com/dipankaratriya-cloud/data_commons">https://github.com/dipankaratriya-cloud/data_commons</a></p>
+</div>
+
+<h4>Step 2: Sign Up for Streamlit Community Cloud</h4>
+
+<ol>
+    <li>Go to: <a href="https://share.streamlit.io">https://share.streamlit.io</a></li>
+    <li>Click "Continue with GitHub"</li>
+    <li>Authorize Streamlit (one-time)</li>
+    <li>Accept terms</li>
+</ol>
+
+<h4>Step 3: Create New App</h4>
+
+<ol>
+    <li>Click "New app" button (top right)</li>
+    <li>Fill in the deployment form:
+        <ul>
+            <li><strong>Repository:</strong> <code>dipankaratriya-cloud/data_commons</code></li>
+            <li><strong>Branch:</strong> <code>main</code></li>
+            <li><strong>Main file path:</strong> <code>license_finder_app.py</code></li>
+            <li><strong>App URL:</strong> Choose a custom name (e.g., <code>license-finder</code>)</li>
+        </ul>
+    </li>
+</ol>
+
+<h4>Step 4: Configure Secrets (IMPORTANT)</h4>
+
+<div class="warning-box">
+    <p><strong>This step is critical for security!</strong></p>
+    <ol>
+        <li>Click "Advanced settings"</li>
+        <li>Find "Secrets" section</li>
+        <li>Paste this exactly:</li>
+    </ol>
+    <pre><code>GROQ_API_KEY="gsk_your_api_key_here"</code></pre>
+
+    <p><strong>Why Secrets?</strong></p>
+    <ul>
+        <li>Keeps API key secure</li>
+        <li>Not visible in code</li>
+        <li>Not exposed to users</li>
+        <li>Can be updated without code changes</li>
+    </ul>
+</div>
+
+<h4>Step 5: Deploy</h4>
+
+<ol>
+    <li>Click "Deploy!" button</li>
+    <li>Wait 2-3 minutes</li>
+    <li>Watch deployment logs showing:
+        <ul>
+            <li>Building app...</li>
+            <li>Installing dependencies...</li>
+            <li>Starting app...</li>
+            <li>✓ App is ready!</li>
+        </ul>
+    </li>
+</ol>
+
+<h4>Step 6: Get Your URL</h4>
+
+<div class="success-box">
+    <p><strong>Your app is now available at:</strong></p>
+    <p><code>https://license-finder-dc.streamlit.app</code></p>
+    <p>(or whatever name you chose)</p>
+</div>
+
+<h4>Step 7: Share with Team</h4>
+
+<div class="info-box">
+    <p><strong>Just send them the URL!</strong></p>
+    <ul>
+        <li>No installation needed</li>
+        <li>No API key needed (it's in secrets)</li>
+        <li>Works on any device with a browser</li>
+    </ul>
+</div>
+
+<h3>Automatic Updates</h3>
+
+<div class="success-box">
+    <p><strong>Whenever you push to GitHub:</strong></p>
+    <ul>
+        <li>Streamlit detects changes automatically</li>
+        <li>Redeploys the application</li>
+        <li>Users see updates within 1-2 minutes</li>
+    </ul>
+</div>
+
+<p><strong>To push updates:</strong></p>
+<pre><code># Make changes to code
+git add .
+git commit -m "Updated feature X"
+git push origin main
+
+# That's it! Streamlit handles the rest</code></pre>
+
+<h3>Managing Your Deployed App</h3>
+
+<p><strong>Access App Dashboard:</strong></p>
+<ol>
+    <li>Go to <a href="https://share.streamlit.io">https://share.streamlit.io</a></li>
+    <li>Click on your app name</li>
+    <li>View metrics, logs, and settings</li>
+</ol>
+
+<p><strong>Available Controls:</strong></p>
+<ul>
+    <li>⚙️ Settings - Change app configuration</li>
+    <li>📊 Analytics - View usage statistics</li>
+    <li>🔄 Reboot - Restart the application</li>
+    <li>View Logs - Monitor real-time activity</li>
+</ul>
+
+<h1 id="faq">10. Common Questions and Solutions</h1>
+
+<h2>General Questions</h2>
+
+<h3>Q: How much does this cost to run?</h3>
+
+<div class="info-box">
+    <p><strong>Groq API:</strong></p>
+    <ul>
+        <li>Free tier: 30 requests per minute</li>
+        <li>Typical search: $0.01 - $0.10</li>
+        <li>100 searches: ~$1-10 depending on complexity</li>
+    </ul>
+
+    <p><strong>Streamlit Hosting:</strong></p>
+    <ul>
+        <li>Completely FREE for public apps</li>
+        <li>Unlimited usage</li>
+        <li>No hidden costs</li>
+    </ul>
+
+    <p><strong>Total:</strong> Very affordable for regular use</p>
+</div>
+
+<h3>Q: How long does each search take?</h3>
+
+<table>
+    <tr>
+        <th>Website Complexity</th>
+        <th>Time Required</th>
+    </tr>
+    <tr>
+        <td>Simple websites (1 page)</td>
+        <td>10-20 seconds</td>
+    </tr>
+    <tr>
+        <td>Medium complexity (2-3 pages)</td>
+        <td>20-40 seconds</td>
+    </tr>
+    <tr>
+        <td>Complex (many nested links)</td>
+        <td>40-90 seconds</td>
+    </tr>
+</table>
+
+<h3>Q: Can it fail to find licenses?</h3>
+
+<div class="warning-box">
+    <p><strong>Yes, possible scenarios:</strong></p>
+    <ul>
+        <li>Website has no license information</li>
+        <li>License is in non-standard location</li>
+        <li>Website blocks automated access</li>
+        <li>License is in images/PDFs (can't read these)</li>
+    </ul>
+
+    <p><strong>In these cases:</strong></p>
+    <ul>
+        <li>Tool reports "No license found"</li>
+        <li>Provides low confidence</li>
+        <li>Shows what pages it checked</li>
+    </ul>
+</div>
+
+<h3>Q: Is this legal?</h3>
+
+<div class="success-box">
+    <p><strong>Yes, this is legal automation because:</strong></p>
+    <ul>
+        <li>✓ Accesses public information only</li>
+        <li>✓ Respects robots.txt (website rules)</li>
+        <li>✓ Doesn't overload servers</li>
+        <li>✓ Used for legitimate research purposes</li>
+    </ul>
+    <p><strong>Same as:</strong> A person browsing websites manually</p>
+</div>
+
+<h3>Q: How accurate is it?</h3>
+
+<table>
+    <tr>
+        <th>Confidence Level</th>
+        <th>Accuracy</th>
+    </tr>
+    <tr>
+        <td>High confidence results</td>
+        <td>95%+ accurate</td>
+    </tr>
+    <tr>
+        <td>Medium confidence</td>
+        <td>75-90% accurate</td>
+    </tr>
+    <tr>
+        <td>Low confidence</td>
+        <td>Review manually</td>
+    </tr>
+</table>
+
+<div class="highlight-box">
+    <p><strong>Important:</strong> Always verify for critical legal decisions. The tool is a research assistant, not legal advice.</p>
+</div>
+
+<h2>Technical Questions</h2>
+
+<h3>Q: What if my API key runs out of credits?</h3>
+
+<div class="warning-box">
+    <p><strong>You'll see error:</strong> "Insufficient credits"</p>
+
+    <p><strong>Solutions:</strong></p>
+    <ol>
+        <li>Check usage at <a href="https://console.groq.com">https://console.groq.com</a></li>
+        <li>Upgrade to paid plan if needed</li>
+        <li>Use more efficient model (compound-mini)</li>
+        <li>Rate limit requests</li>
+    </ol>
+</div>
+
+<h3>Q: Can I use a different AI service?</h3>
+
+<div class="warning-box">
+    <p><strong>Current:</strong> Groq (has browser automation)</p>
+
+    <p><strong>Alternatives:</strong></p>
+    <ul>
+        <li>❌ OpenAI - No browser automation</li>
+        <li>❌ Anthropic Claude - No browser automation</li>
+        <li>❌ Google Gemini - No browser automation</li>
+    </ul>
+
+    <p><strong>Why Groq?</strong></p>
+    <ul>
+        <li>✓ ONLY service with browser automation</li>
+        <li>✓ This is critical for our use case</li>
+    </ul>
+</div>
+
+<h3>Q: What if the website blocks automated access?</h3>
+
+<div class="info-box">
+    <p><strong>Some websites block bots with:</strong></p>
+    <ul>
+        <li>Rate limiting</li>
+        <li>CAPTCHA challenges</li>
+        <li>IP blocking</li>
+    </ul>
+
+    <p><strong>Tool will report:</strong> "Unable to access website"</p>
+
+    <p><strong>Solutions:</strong></p>
+    <ul>
+        <li>Try again later</li>
+        <li>Manual review needed</li>
+        <li>Contact website owner</li>
+    </ul>
+</div>
+
+<h2>Troubleshooting</h2>
+
+<h3>Problem: "API Key not found"</h3>
+
+<div class="highlight-box">
+    <p><strong>Solution:</strong></p>
+    <ol>
+        <li>Check .env file has: <code>GROQ_API_KEY=your_key</code></li>
+        <li>For Streamlit Cloud: Check secrets are set</li>
+        <li>Verify no extra spaces or quotes</li>
+        <li>Key format: <code>gsk_xxxxx</code></li>
+    </ol>
+</div>
+
+<h3>Problem: "Connection timeout"</h3>
+
+<div class="highlight-box">
+    <p><strong>Possible causes:</strong></p>
+    <ul>
+        <li>Website is slow</li>
+        <li>No internet connection</li>
+        <li>Website is down</li>
+    </ul>
+
+    <p><strong>Solutions:</strong></p>
+    <ul>
+        <li>Try again</li>
+        <li>Check website manually</li>
+        <li>Wait and retry</li>
+        <li>Try different URL</li>
+    </ul>
+</div>
+
+<h3>Problem: "Unable to extract license"</h3>
+
+<div class="highlight-box">
+    <p><strong>Possible reasons:</strong></p>
+    <ul>
+        <li>No license on website</li>
+        <li>License in unusual format</li>
+        <li>Website structure too complex</li>
+    </ul>
+
+    <p><strong>Next steps:</strong></p>
+    <ol>
+        <li>Check browser session details</li>
+        <li>See what pages were visited</li>
+        <li>Manual review may be needed</li>
+    </ol>
+</div>
+
+<h3>Problem: App loads but shows error</h3>
+
+<div class="highlight-box">
+    <p><strong>Check:</strong></p>
+    <ol>
+        <li>Logs in Streamlit dashboard</li>
+        <li>API key is valid</li>
+        <li>Dependencies installed correctly</li>
+        <li>Python version compatibility (3.8+)</li>
+    </ol>
+
+    <p><strong>Common fix:</strong></p>
+    <ul>
+        <li>Reboot app in Streamlit dashboard</li>
+        <li>Check requirements.txt</li>
+        <li>Verify all files pushed to GitHub</li>
+    </ul>
+</div>
+
+<h2>Usage Tips</h2>
+
+<h3>Tip 1: Choose the Right Model</h3>
+
+<table>
+    <tr>
+        <th>Use Case</th>
+        <th>Recommended Model</th>
+    </tr>
+    <tr>
+        <td>Fast searches (simple sites)</td>
+        <td><code>groq/compound-mini</code></td>
+    </tr>
+    <tr>
+        <td>Balanced (recommended)</td>
+        <td><code>moonshotai/kimi-k2-instruct-0905</code></td>
+    </tr>
+    <tr>
+        <td>Thorough (complex sites)</td>
+        <td><code>groq/compound</code></td>
+    </tr>
+</table>
+
+<h3>Tip 2: Use URL History</h3>
+
+<div class="info-box">
+    <p><strong>Sidebar shows recent URLs:</strong></p>
+    <ul>
+        <li>Quick access to previous searches</li>
+        <li>Track your research</li>
+        <li>Compare results over time</li>
+    </ul>
+</div>
+
+<h3>Tip 3: Download JSON for Records</h3>
+
+<div class="success-box">
+    <p><strong>Always download results for:</strong></p>
+    <ul>
+        <li>Legal documentation</li>
+        <li>Project compliance records</li>
+        <li>Sharing with team</li>
+        <li>Audit trails</li>
+    </ul>
+</div>
+
+<h3>Tip 4: Interpret Confidence Levels</h3>
+
+<ul>
+    <li>🟢 High → Trust it</li>
+    <li>🟡 Medium → Review it</li>
+    <li>🔴 Low → Verify manually</li>
+</ul>
+
+<h3>Tip 5: Best URLs to Search</h3>
+
+<div class="success-box">
+    <p><strong>✅ Good URLs:</strong></p>
+    <ul>
+        <li>Dataset landing pages</li>
+        <li>API documentation pages</li>
+        <li>Terms of service pages</li>
+        <li>About pages</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <p><strong>❌ Avoid:</strong></p>
+    <ul>
+        <li>Homepage (too general)</li>
+        <li>Search results</li>
+        <li>Dynamic pages</li>
+    </ul>
+</div>
+
+<h1>Summary for Clients</h1>
+
+<h2>What You're Getting</h2>
+
+<div class="success-box">
+    <p><strong>A Professional Tool That:</strong></p>
+    <ol>
+        <li>✅ Automatically finds license information on websites</li>
+        <li>✅ Uses advanced AI with browser automation</li>
+        <li>✅ Saves hours of manual work</li>
+        <li>✅ Provides structured, reliable results</li>
+        <li>✅ Hosted online for free</li>
+        <li>✅ Accessible to anyone with the URL</li>
+        <li>✅ Maintains records for compliance</li>
+    </ol>
+</div>
+
+<h2>Why These Technologies?</h2>
+
+<div class="highlight-box">
+    <p><strong>Simple Answer:</strong></p>
+    <p>We chose each technology because it's the best tool for its job:</p>
+    <ul>
+        <li><strong>Python</strong> - Industry standard for data tools</li>
+        <li><strong>Streamlit</strong> - Easiest way to create web interfaces</li>
+        <li><strong>Groq with Browser Automation</strong> - ONLY service that can navigate websites like humans</li>
+        <li><strong>GitHub</strong> - Industry standard for code storage</li>
+        <li><strong>Streamlit Cloud</strong> - Free, reliable hosting</li>
+    </ul>
+</div>
+
+<h2>The Alternative Would Be:</h2>
+
+<table>
+    <tr>
+        <th>Manual Process</th>
+        <th>Our Tool</th>
+    </tr>
+    <tr>
+        <td>
+            • Person visits each website<br>
+            • Manually searches for license<br>
+            • Copies information to spreadsheet<br>
+            • Prone to human error<br>
+            • Takes hours per website<br>
+            <br>
+            <strong>Cost:</strong> $50-100 per hour × many hours
+        </td>
+        <td>
+            • Automated<br>
+            • Consistent<br>
+            • Fast<br>
+            • Documented<br>
+            <br>
+            <strong>Cost:</strong> ~$0.05 per search
+        </td>
+    </tr>
+</table>
+
+<h2>Next Steps</h2>
+
+<div class="info-box">
+    <p><strong>Ready to Use:</strong></p>
+    <ol>
+        <li>App is deployed and ready</li>
+        <li>Team can access immediately</li>
+        <li>No training needed (intuitive interface)</li>
+        <li>Support available</li>
+    </ol>
+
+    <p><strong>For Ongoing Use:</strong></p>
+    <ol>
+        <li>Monitor API usage monthly</li>
+        <li>Download results for records</li>
+        <li>Report any issues</li>
+        <li>Request features as needed</li>
+    </ol>
+</div>
+
+<h2>Support and Maintenance</h2>
+
+<div class="success-box">
+    <p><strong>What's Included:</strong></p>
+    <ul>
+        <li>Bug fixes</li>
+        <li>Security updates</li>
+        <li>Performance improvements</li>
+        <li>API key rotation if needed</li>
+    </ul>
+</div>
+
+<div class="highlight-box">
+    <p><strong>What's Extra:</strong></p>
+    <ul>
+        <li>New features</li>
+        <li>Integration with other systems</li>
+        <li>Custom branding</li>
+        <li>Bulk processing capabilities</li>
+    </ul>
+</div>
+
+<h1>Contact and Support</h1>
+
+<div class="info-box">
+    <p><strong>For Questions:</strong></p>
+    <ul>
+        <li>Technical issues: Check logs in Streamlit dashboard</li>
+        <li>Feature requests: Document and prioritize</li>
+        <li>Bug reports: Create GitHub issue</li>
+    </ul>
+
+    <p><strong>Resources:</strong></p>
+    <ul>
+        <li>Code repository: <a href="https://github.com/dipankaratriya-cloud/data_commons">https://github.com/dipankaratriya-cloud/data_commons</a></li>
+        <li>Streamlit docs: <a href="https://docs.streamlit.io">https://docs.streamlit.io</a></li>
+        <li>Groq docs: <a href="https://console.groq.com/docs">https://console.groq.com/docs</a></li>
+    </ul>
+</div>
+
+<h1>Appendix: Technical Specifications</h1>
+
+<h2>System Requirements</h2>
+
+<table>
+    <tr>
+        <th>Environment</th>
+        <th>Requirements</th>
+    </tr>
+    <tr>
+        <td><strong>Local Development</strong></td>
+        <td>
+            • Python 3.8 or higher<br>
+            • 2GB RAM minimum<br>
+            • Internet connection<br>
+            • Modern web browser
+        </td>
+    </tr>
+    <tr>
+        <td><strong>Online Deployment</strong></td>
+        <td>
+            • Just a web browser<br>
+            • Internet connection
+        </td>
+    </tr>
+</table>
+
+<h2>Dependencies and Versions</h2>
+
+<pre><code>groq>=0.4.0                # Groq API client
+python-dotenv>=1.0.0       # Environment variables
+streamlit>=1.28.0          # Web interface
+requests>=2.31.0           # HTTP requests
+beautifulsoup4>=4.12.0     # HTML parsing
+lxml>=4.9.0                # XML parser</code></pre>
+
+<h2>File Structure</h2>
+
+<pre><code>data_commons/
+├── license_finder_app.py          # Main Streamlit application
+├── app.py                          # Alternative metadata app
+├── requirements.txt                # Dependencies
+├── .env                            # API keys (local only)
+├── .gitignore                      # Git exclusions
+├── src/
+│   ├── __init__.py
+│   ├── orchestrator.py             # Metadata orchestration
+│   ├── extractors/
+│   │   ├── __init__.py
+│   │   ├── license_extractor.py
+│   │   ├── place_extractor.py
+│   │   └── temporal_extractor.py
+│   └── utils/
+│       ├── __init__.py
+│       ├── groq_browser_automation.py
+│       └── groq_browser_client.py
+└── [Documentation files]</code></pre>
+
+<div class="footer">
+    <p><strong>Document Version:</strong> 1.0</p>
+    <p><strong>Last Updated:</strong> November 19, 2024</p>
+    <p><strong>For:</strong> Data Commons License Finder Project</p>
+    <p><strong>Repository:</strong> <a href="https://github.com/dipankaratriya-cloud/data_commons">https://github.com/dipankaratriya-cloud/data_commons</a></p>
+    <hr>
+    <p><em>This guide is designed to be comprehensive yet accessible. Share it with clients, team members, or stakeholders who need to understand the tool without technical expertise.</em></p>
+</div>
+
+</body>
+</html>

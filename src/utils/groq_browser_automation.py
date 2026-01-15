@@ -10,13 +10,12 @@ class GroqBrowserAutomation:
     for comprehensive web research and metadata extraction.
     """
 
-    def __init__(self, api_key: str, model: str = "moonshotai/kimi-k2-instruct-0905", timeout: int = 120):
+    def __init__(self, api_key: str, model: str = "groq/compound", timeout: int = 120):
         """Initialize the browser automation client.
 
         Args:
             api_key: Groq API key
-            model: Model to use (default: moonshotai/kimi-k2-instruct-0905,
-                   or groq/compound, groq/compound-mini)
+            model: Model to use (default: groq/compound)
             timeout: Request timeout in seconds (default: 120)
         """
         self.client = Groq(
@@ -198,7 +197,79 @@ Return the information in a structured format."""
 
         return result
 
-    def extract_all_metadata(self, url: str, max_retries: int = 2) -> dict:
+    def find_source_url(self, source_name: str, max_retries: int = 2) -> dict:
+        """Find the official dataset/data portal URL for a given source name.
+
+        Args:
+            source_name: Name of the data source (e.g., "Statistics Canada", "French Open Data")
+            max_retries: Maximum retry attempts (default: 2)
+
+        Returns:
+            dict with url and source details
+        """
+        source_name = source_name.strip()
+        # Parse source name - replace underscores/camelCase with spaces for better search
+        import re as re_parse
+        search_terms = re_parse.sub(r'([a-z])([A-Z])', r'\1 \2', source_name)
+        search_terms = search_terms.replace('_', ' ').replace('-', ' ')
+
+        query = f"""Search the web for: {search_terms}
+
+This is a dataset/data source name. Find the EXACT webpage that contains this data.
+
+Return JSON with 3 URLs:
+- url: main website of the data provider
+- license_url: terms/conditions page on same website
+- data_url: the SPECIFIC page URL where this exact data is published (should have query parameters like ?head=... or report IDs)
+
+{{"url": "https://...", "license_url": "https://...", "data_url": "https://..."}}"""
+
+        result = self.extract_with_automation(query, max_retries=max_retries)
+
+        if result["success"] and result["content"]:
+            import re
+            content = result["content"]
+
+            # Try to extract JSON from the response
+            json_match = re.search(r'\{[^{}]*"url"[^{}]*\}', content, re.DOTALL)
+            if json_match:
+                try:
+                    parsed = json.loads(json_match.group())
+                    result["detected_url"] = parsed.get("url")
+                    result["license_url"] = parsed.get("license_url")
+                    result["data_url"] = parsed.get("data_url")
+                    result["source_info"] = parsed
+                except json.JSONDecodeError:
+                    pass
+
+            # Fallback: extract URLs from content if not found
+            urls = re.findall(r'https?://[^\s<>"\')\]]+', content)
+            urls = [u.rstrip('.,)') for u in urls if len(u) > 10]
+
+            if urls and not result.get("detected_url"):
+                result["detected_url"] = urls[0]
+
+            if urls:
+                main_domain = re.search(r'https?://([^/]+)', urls[0])
+                main_domain = main_domain.group(1) if main_domain else ""
+
+                for u in urls:
+                    ul = u.lower()
+                    # License URL - on same domain, not external
+                    if not result.get("license_url") and any(k in ul for k in ['license', 'terms', 'legal', 'policy', 'disclaimer']):
+                        if 'creativecommons' not in ul:
+                            result["license_url"] = u
+                    # Data URL - specific pages with params or keywords
+                    if not result.get("data_url") and any(k in ul for k in ['publication', 'report', 'table', 'statistics', 'handbook', 'summary', '?head=', '?templateId=', '?pid=']):
+                        result["data_url"] = u
+
+            # Filter out external license URLs from parsed result
+            if result.get("license_url") and 'creativecommons.org' in result["license_url"]:
+                result["license_url"] = None
+
+        return result
+
+    def extract_all_metadata(self, url: str, max_retries: int = 2, description: str = None) -> dict:
         """Extract all metadata types using a single browser automation query.
 
         This is more efficient than calling individual extractors as it uses
@@ -207,20 +278,32 @@ Return the information in a structured format."""
         Args:
             url: Dataset or website URL
             max_retries: Maximum retry attempts (default: 2)
+            description: User-provided description of what to look for
 
         Returns:
             dict with all metadata types
         """
-        query = f"""Analyze this dataset URL and extract comprehensive metadata: {url}
+        desc_context = f"\n\nUSER REQUEST: {description}\n" if description else ""
+        query = f"""Analyze this dataset URL and extract comprehensive metadata: {url}{desc_context}
 
 Please extract ALL of the following information:
 
+**RELEVANT DATA PAGE LINKS (IMPORTANT - provide 4-5 links):**
+List 4-5 relevant data page URLs from this source that contain actual datasets, data downloads, or data catalogs.
+Format each as:
+- [Page Title](URL) - Brief description of what data is available
+
 **LICENSE INFORMATION:**
-- License Type (e.g., CC-BY-4.0, MIT, Open Government License)
-- License URL (direct link)
+- License Type (e.g., CC-BY-4.0, MIT, Open Government License, Custom License)
+- License URLs (provide 2-3 links): Find multiple license/terms pages. Look for:
+  - Main terms of use page
+  - Data license page
+  - API terms page
+  - Privacy policy (if relevant to data usage)
+  Format each as: [Page Title](URL)
 - Attribution requirements
 - Usage restrictions
-- Confidence level
+- Confidence level (high only if you found dedicated license/terms pages)
 
 **GEOGRAPHIC COVERAGE:**
 - Countries, regions, cities covered
@@ -236,6 +319,18 @@ Please extract ALL of the following information:
 - Temporal Resolution
 - Reference Period
 - Data Type (historical/real-time)
+
+LINK VALIDATION (Best Effort):
+- When possible, try to visit links to verify they are accessible
+- If a link returns errors (403, 401, 404), exclude it and find an alternative
+- Prefer links from the main public-facing website sections
+- Mark each link with verification status: [Verified] or [Unverified]
+- IMPORTANT: Always provide the requested links even if you cannot fully verify all of them
+- Never refuse to provide results - always return the best information available
+- If verification is not possible, still provide the links but mark them as [Unverified]
+
+For License URLs, look for dedicated terms/license pages on the website.
+Prefer official documentation and policy pages over generic homepages.
 
 Use your browser automation capabilities to search through multiple pages,
 documentation, metadata sections, and related links to provide comprehensive
@@ -254,7 +349,9 @@ and accurate information. Return the information in a well-structured format."""
 
     def _parse_license_content(self, content: str) -> dict:
         """Parse license information from response content."""
-        # Basic parsing - can be enhanced with more sophisticated extraction
+        import re
+        from urllib.parse import urlparse
+
         license_data = {
             "license_type": None,
             "license_url": None,
@@ -266,18 +363,83 @@ and accurate information. Return the information in a well-structured format."""
         if not content:
             return license_data
 
-        # Simple keyword-based extraction
+        def is_valid_license_url(url: str) -> bool:
+            """Validate if URL is likely a license/terms page."""
+            if not url:
+                return False
+
+            url_lower = url.lower()
+            parsed = urlparse(url_lower)
+            path = parsed.path
+
+            # Keywords that indicate a license/terms page
+            license_keywords = [
+                'license', 'licence', 'terms', 'legal', 'copyright',
+                'conditions', 'policy', 'privacy', 'disclaimer', 'tos',
+                'eula', 'agreement', 'rights', 'usage', 'creative-commons',
+                'creativecommons', 'cc-by', 'open-data', 'opendata'
+            ]
+
+            # Check if URL path contains license-related keywords
+            if any(kw in path for kw in license_keywords):
+                return True
+
+            # Check for known license domains
+            license_domains = [
+                'creativecommons.org', 'opensource.org', 'gnu.org/licenses',
+                'choosealicense.com', 'spdx.org'
+            ]
+            if any(domain in url_lower for domain in license_domains):
+                return True
+
+            # Reject URLs that are clearly not license pages
+            reject_patterns = [
+                r'/$',  # Homepage (ends with just /)
+                r'/data/?$', r'/dataset', r'/table', r'/statistics',
+                r'/news', r'/press', r'/contact', r'/about/?$',
+                r'/search', r'/login', r'/register', r'/api/',
+                r'\.(csv|xlsx|json|xml|zip|pdf)$'  # Data files
+            ]
+            for pattern in reject_patterns:
+                if re.search(pattern, path):
+                    return False
+
+            # If path is very short (likely homepage), reject
+            if len(path.strip('/')) < 3:
+                return False
+
+            return True
+
+        # Extract URL first (before lowercasing) using regex
+        # Look for explicitly labeled license URL
+        url_match = re.search(r'license\s*(?:url|link)[:\s]*\(?(https?://[^\s<>"\')\]]+)', content, re.IGNORECASE)
+        candidate_url = None
+
+        if url_match:
+            candidate_url = url_match.group(1).rstrip('.,')
+        else:
+            # Fallback: find any URL near license-related text
+            license_section = re.search(r'(?:license|licensing|terms)[^}]{0,300}?(https?://[^\s<>"\')\]]+)', content, re.IGNORECASE)
+            if license_section:
+                candidate_url = license_section.group(1).rstrip('.,')
+
+        # Validate the URL before accepting it
+        if candidate_url and is_valid_license_url(candidate_url):
+            license_data['license_url'] = candidate_url
+        elif candidate_url:
+            # URL found but doesn't look like a license page - don't include it
+            license_data['license_url'] = None
+
+        # Now lowercase for other extractions
         lines = content.lower().split('\n')
         for line in lines:
-            if 'license type' in line or 'license:' in line:
-                # Extract the value after the colon
+            if 'license type' in line or ('license:' in line and 'url' not in line):
                 parts = line.split(':', 1)
                 if len(parts) > 1:
-                    license_data['license_type'] = parts[1].strip()
-            elif 'license url' in line or 'license link' in line:
-                parts = line.split(':', 1)
-                if len(parts) > 1:
-                    license_data['license_url'] = parts[1].strip()
+                    value = parts[1].strip()
+                    # Don't set license type if it looks like "not found"
+                    if 'not found' not in value and 'n/a' not in value:
+                        license_data['license_type'] = value
             elif 'confidence' in line:
                 parts = line.split(':', 1)
                 if len(parts) > 1:
