@@ -17,7 +17,6 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from src.utils.groq_browser_automation import GroqBrowserAutomation
-from src.utils.auth import show_auth_page, logout
 
 
 def find_dc_property(query: str, api_key: str = None) -> dict:
@@ -568,11 +567,6 @@ def main():
         initial_sidebar_state="collapsed"
     )
 
-    # Authentication check - show login page if not authenticated
-    user_email = show_auth_page()
-    if not user_email:
-        return  # Stop here if not authenticated
-
     # Custom CSS for clean light theme
     st.markdown("""
         <style>
@@ -923,25 +917,6 @@ def main():
 
     # Sidebar configuration
     with st.sidebar:
-        # User info and logout
-        st.markdown(f"""
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem; background-color: #f0f9ff; border-radius: 0.5rem; border: 1px solid #bae6fd;">
-                <div style="display: flex; align-items: center;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0369a1" stroke-width="2" style="margin-right: 8px;">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <span style="color: #0369a1; font-size: 0.85rem; font-weight: 500;">{user_email}</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("Logout", use_container_width=True, key="logout_btn"):
-            logout()
-            st.rerun()
-
-        st.markdown("---")
-
         st.markdown("""
             <div style="display: flex; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #d1d5db;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" style="margin-right: 10px;">
