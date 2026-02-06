@@ -19,6 +19,80 @@ from dotenv import load_dotenv
 from src.utils.groq_browser_automation import GroqBrowserAutomation
 
 
+def search_statistical_variables(query: str, api_key: str = None) -> dict:
+    """Search Data Commons for statistical variables and return their constraint properties."""
+    api_key = api_key or os.getenv("DC_API_KEY")
+    headers = {"X-API-Key": api_key} if api_key else {}
+
+    try:
+        # Build potential DCID patterns from query
+        query_clean = query.strip().title().replace(" ", "")
+        patterns = [
+            f"Count_{query_clean}", f"Count_Person_{query_clean}", f"Area_{query_clean}",
+            f"Amount_{query_clean}", f"Percent_{query_clean}", f"Number_{query_clean}",
+            f"Count_Establishment_{query_clean}", f"Count_Worker_{query_clean}",
+            f"Count_CivicStructure_{query_clean}Facility", f"Count_Farm",
+            f"Area_Farm", f"Amount_FarmInventory", f"Percent_Farm",
+        ]
+
+        # Also try SPARQL search
+        sparql_query = f'''
+SELECT DISTINCT ?dcid WHERE {{
+  ?dcid typeOf StatisticalVariable .
+  FILTER(CONTAINS(LCASE(STR(?dcid)), "{query.lower()}"))
+}} LIMIT 20
+'''
+        sparql_dcids = []
+        try:
+            resp = requests.get(
+                "https://api.datacommons.org/v2/sparql",
+                headers=headers,
+                params={"query": sparql_query},
+                timeout=15
+            )
+            if resp.status_code == 200:
+                for row in resp.json().get("rows", []):
+                    cells = row.get("cells", [])
+                    if cells:
+                        sparql_dcids.append(cells[0].get("value", ""))
+        except:
+            pass
+
+        # Combine patterns and SPARQL results
+        all_dcids = list(set(patterns + sparql_dcids))
+
+        # Fetch properties for potential DCIDs
+        results = []
+        # Check in batches
+        for i in range(0, len(all_dcids), 10):
+            batch = all_dcids[i:i+10]
+            props_resp = requests.post(
+                "https://api.datacommons.org/v2/node",
+                headers=headers,
+                json={"nodes": batch, "property": "->*"},
+                timeout=15
+            )
+            if props_resp.status_code == 200:
+                data = props_resp.json().get("data", {})
+                for dcid, info in data.items():
+                    arcs = info.get("arcs", {})
+                    if arcs:  # Only include if it has properties (exists)
+                        props = {}
+                        for k, v in arcs.items():
+                            values = [n.get("value") or n.get("dcid") for n in v.get("nodes", [])]
+                            if values:
+                                props[k] = values
+                        if props:
+                            results.append({"dcid": dcid, "properties": props, "url": f"https://datacommons.org/browser/{dcid}"})
+
+        if not results:
+            return {"success": False, "error": f"No statistical variables found for '{query}'"}
+
+        return {"success": True, "results": results}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 def find_dc_property(query: str, api_key: str = None) -> dict:
     """Find Data Commons property for a concept (e.g., 'agriculture' -> 'economicSector, Agriculture')."""
     api_key = api_key or os.getenv("DC_API_KEY")
@@ -994,36 +1068,38 @@ def main():
 
     with tool_tab2:
         # Entity Property Tool
-        st.markdown("**Find Data Commons property for a concept (e.g., 'agriculture' → economicSector, Agriculture)**")
+        st.markdown("**Search Statistical Variables and get constraint properties**")
         entity_input = st.text_input(
-            "Entity name",
-            placeholder="e.g., agriculture, manufacturing, retail, healthcare",
+            "Search term",
+            placeholder="e.g., agriculture, population, income, education",
             label_visibility="collapsed",
             key="entity_input"
         )
-        if st.button("Find DC Property", key="get_props", use_container_width=True):
+        if st.button("Search Statistical Variables", key="get_props", use_container_width=True):
             if entity_input:
                 with st.spinner("Searching Data Commons..."):
-                    result = find_dc_property(entity_input)
+                    result = search_statistical_variables(entity_input)
                 if result["success"]:
-                    st.success(f"Found {len(result['results'])} matching DC properties:")
-                    for r in result["results"][:10]:
-                        st.code(f"{r['property']}, {r['value']}", language=None)
-                        st.caption(f"DCID: `{r['dcid']}` | Type: {r['type']}")
+                    st.success(f"Found {len(result['results'])} statistical variables:")
+                    for r in result["results"]:
+                        with st.expander(f"📊 {r['dcid']}", expanded=False):
+                            st.markdown(f"**[View in Browser]({r['url']})**")
+                            props = r["properties"]
+                            # Show key constraint properties
+                            key_props = ["measuredProperty", "populationType", "statType", "measurementDenominator", "constraintProperties"]
+                            for prop in key_props:
+                                if prop in props:
+                                    st.write(f"**{prop}:** {', '.join(str(v) for v in props[prop][:5])}")
+                            # Show other properties
+                            other_props = {k: v for k, v in props.items() if k not in key_props and k not in ["provenance", "typeOf"]}
+                            if other_props:
+                                st.markdown("**Other properties:**")
+                                for k, v in list(other_props.items())[:10]:
+                                    st.write(f"- {k}: {', '.join(str(x) for x in v[:3])}")
                 else:
                     st.warning(result["error"])
-                    # Fallback to full entity lookup
-                    st.info("Trying full entity lookup...")
-                    result2 = get_entity_properties(entity_input)
-                    if result2["success"]:
-                        st.success(f"Found: **{result2['dcid']}** (Type: {result2.get('entity_type', 'Unknown')})")
-                        props = result2["properties"]
-                        if props:
-                            for prop in ["name", "typeOf", "description"][:3]:
-                                if prop in props:
-                                    st.write(f"**{prop}:** {', '.join(str(v) for v in props[prop][:3])}")
             else:
-                st.warning("Enter a concept name (e.g., agriculture, manufacturing)")
+                st.warning("Enter a search term (e.g., agriculture, population)")
 
     with tool_tab1:
         if not api_key:
