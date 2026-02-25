@@ -197,77 +197,114 @@ Return the information in a structured format."""
 
         return result
 
-    def find_source_url(self, source_name: str, max_retries: int = 2) -> dict:
+    def find_source_url(self, source_name: str, max_retries: int = 3) -> dict:
         """Find the official dataset/data portal URL for a given source name.
 
         Args:
             source_name: Name of the data source (e.g., "Statistics Canada", "French Open Data")
-            max_retries: Maximum retry attempts (default: 2)
+            max_retries: Maximum retry attempts (default: 3)
 
         Returns:
             dict with url and source details
         """
+        import time
+        import re
+
         source_name = source_name.strip()
         # Parse source name - replace underscores/camelCase with spaces for better search
-        import re as re_parse
-        search_terms = re_parse.sub(r'([a-z])([A-Z])', r'\1 \2', source_name)
+        search_terms = re.sub(r'([a-z])([A-Z])', r'\1 \2', source_name)
         search_terms = search_terms.replace('_', ' ').replace('-', ' ')
 
-        query = f"""Search the web for: {search_terms}
+        # Different query variations to try
+        queries = [
+            f"""Search the web for: {search_terms}
 
 This is a dataset/data source name. Find the EXACT webpage that contains this data.
 
 Return JSON with 3 URLs:
 - url: main website of the data provider
 - license_url: terms/conditions page on same website
-- data_url: the SPECIFIC page URL where this exact data is published (should have query parameters like ?head=... or report IDs)
+- data_url: the SPECIFIC page URL where this exact data is published
 
-{{"url": "https://...", "license_url": "https://...", "data_url": "https://..."}}"""
+{{"url": "https://...", "license_url": "https://...", "data_url": "https://..."}}""",
 
-        result = self.extract_with_automation(query, max_retries=max_retries)
+            f"""Find the official website for "{search_terms}" data portal or statistics agency.
 
-        if result["success"] and result["content"]:
-            import re
-            content = result["content"]
+Search and return the main URL for this data source. This is likely a government statistics agency or open data portal.
 
-            # Try to extract JSON from the response
-            json_match = re.search(r'\{[^{}]*"url"[^{}]*\}', content, re.DOTALL)
-            if json_match:
-                try:
-                    parsed = json.loads(json_match.group())
-                    result["detected_url"] = parsed.get("url")
-                    result["license_url"] = parsed.get("license_url")
-                    result["data_url"] = parsed.get("data_url")
-                    result["source_info"] = parsed
-                except json.JSONDecodeError:
-                    pass
+Return as JSON: {{"url": "https://...", "license_url": "https://...", "data_url": "https://..."}}""",
 
-            # Fallback: extract URLs from content if not found
-            urls = re.findall(r'https?://[^\s<>"\')\]]+', content)
-            urls = [u.rstrip('.,)') for u in urls if len(u) > 10]
+            f"""What is the official website URL for {search_terms}?
 
-            if urls and not result.get("detected_url"):
-                result["detected_url"] = urls[0]
+Search the web and find the homepage URL for this organization's data portal.
 
-            if urls:
-                main_domain = re.search(r'https?://([^/]+)', urls[0])
-                main_domain = main_domain.group(1) if main_domain else ""
+Return JSON format: {{"url": "https://..."}}"""
+        ]
 
-                for u in urls:
-                    ul = u.lower()
-                    # License URL - on same domain, not external
-                    if not result.get("license_url") and any(k in ul for k in ['license', 'terms', 'legal', 'policy', 'disclaimer']):
-                        if 'creativecommons' not in ul:
-                            result["license_url"] = u
-                    # Data URL - specific pages with params or keywords
-                    if not result.get("data_url") and any(k in ul for k in ['publication', 'report', 'table', 'statistics', 'handbook', 'summary', '?head=', '?templateId=', '?pid=']):
-                        result["data_url"] = u
+        last_result = None
 
-            # Filter out external license URLs from parsed result
-            if result.get("license_url") and 'creativecommons.org' in result["license_url"]:
-                result["license_url"] = None
+        for attempt in range(max_retries):
+            # Use different query variations
+            query = queries[attempt % len(queries)]
 
-        return result
+            result = self.extract_with_automation(query, max_retries=1)
+            last_result = result
+
+            if result["success"] and result["content"]:
+                content = result["content"]
+
+                # Try to extract JSON from the response
+                json_match = re.search(r'\{[^{}]*"url"[^{}]*\}', content, re.DOTALL)
+                if json_match:
+                    try:
+                        parsed = json.loads(json_match.group())
+                        result["detected_url"] = parsed.get("url")
+                        result["license_url"] = parsed.get("license_url")
+                        result["data_url"] = parsed.get("data_url")
+                        result["source_info"] = parsed
+                    except json.JSONDecodeError:
+                        pass
+
+                # Fallback: extract URLs from content if not found
+                urls = re.findall(r'https?://[^\s<>"\')\]]+', content)
+                urls = [u.rstrip('.,)') for u in urls if len(u) > 10]
+
+                if urls and not result.get("detected_url"):
+                    result["detected_url"] = urls[0]
+
+                if urls:
+                    main_domain = re.search(r'https?://([^/]+)', urls[0])
+                    main_domain = main_domain.group(1) if main_domain else ""
+
+                    for u in urls:
+                        ul = u.lower()
+                        # License URL - on same domain, not external
+                        if not result.get("license_url") and any(k in ul for k in ['license', 'terms', 'legal', 'policy', 'disclaimer']):
+                            if 'creativecommons' not in ul:
+                                result["license_url"] = u
+                        # Data URL - specific pages with params or keywords
+                        if not result.get("data_url") and any(k in ul for k in ['publication', 'report', 'table', 'statistics', 'handbook', 'summary', '?head=', '?templateId=', '?pid=']):
+                            result["data_url"] = u
+
+                # Filter out external license URLs from parsed result
+                if result.get("license_url") and 'creativecommons.org' in result["license_url"]:
+                    result["license_url"] = None
+
+                # If we found a URL, return success
+                if result.get("detected_url"):
+                    result["attempts"] = attempt + 1
+                    return result
+
+            # Wait before retry with exponential backoff
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 2
+                time.sleep(wait_time)
+
+        # All retries exhausted - return last result with attempt count
+        if last_result:
+            last_result["attempts"] = max_retries
+            last_result["error"] = f"Could not find URL after {max_retries} attempts"
+        return last_result or {"success": False, "error": f"Could not find URL after {max_retries} attempts", "attempts": max_retries}
 
     def extract_all_metadata(self, url: str, max_retries: int = 2, description: str = None) -> dict:
         """Extract all metadata types using a single browser automation query.
@@ -284,57 +321,41 @@ Return JSON with 3 URLs:
             dict with all metadata types
         """
         desc_context = f"\n\nUSER REQUEST: {description}\n" if description else ""
-        query = f"""Analyze this dataset URL and extract comprehensive metadata: {url}{desc_context}
+        query = f"""Analyze this data source: {url}{desc_context}
 
-Please extract ALL of the following information:
+Return a STRUCTURED report with these sections:
 
-**RELEVANT DATA PAGE LINKS (IMPORTANT - provide 4-5 links):**
-List 4-5 relevant data page URLs from this source that contain actual datasets, data downloads, or data catalogs.
-Format each as:
-- [Page Title](URL) - Brief description of what data is available
+## 1. DATA CATALOG LINKS (10+ links)
+Find and list ALL available dataset pages, data tables, and download links:
+| Dataset Name | URL | Description |
+|--------------|-----|-------------|
+| ... | https://... | Brief description |
 
-**LICENSE INFORMATION:**
-- License Type (e.g., CC-BY-4.0, MIT, Open Government License, Custom License)
-- License URLs (provide 2-3 links): Find multiple license/terms pages. Look for:
-  - Main terms of use page
-  - Data license page
-  - API terms page
-  - Privacy policy (if relevant to data usage)
-  Format each as: [Page Title](URL)
-- Attribution requirements
-- Usage restrictions
-- Confidence level (high only if you found dedicated license/terms pages)
+Include: data catalogs, specific datasets, CSV/API endpoints, statistical tables.
 
-**GEOGRAPHIC COVERAGE:**
-- Countries, regions, cities covered
-- Place Types (Country, State, City, etc.)
-- Place ID Systems (ISO 3166, FIPS, etc.)
-- Spatial Resolution
-- Example place IDs
+## 2. LICENSE & TERMS
+- **License Type:** (e.g., CC-BY-4.0, Open Government License)
+- **License URL:** Direct link to terms page
+- **Attribution:** Required citation format
+- **Restrictions:** Any usage limitations
 
-**TEMPORAL COVERAGE:**
-- Coverage Period (start and end dates)
-- Update Frequency
-- Last Updated date
-- Temporal Resolution
-- Reference Period
-- Data Type (historical/real-time)
+## 3. GEOGRAPHIC COVERAGE
+- **Countries/Regions:** List all covered areas
+- **Place Types:** Country, State, City, PostalCode, etc.
+- **Place ID System:** ISO 3166, FIPS, custom codes
+- **Resolution:** National, regional, local level
 
-LINK VALIDATION (Best Effort):
-- When possible, try to visit links to verify they are accessible
-- If a link returns errors (403, 401, 404), exclude it and find an alternative
-- Prefer links from the main public-facing website sections
-- Mark each link with verification status: [Verified] or [Unverified]
-- IMPORTANT: Always provide the requested links even if you cannot fully verify all of them
-- Never refuse to provide results - always return the best information available
-- If verification is not possible, still provide the links but mark them as [Unverified]
+## 4. TEMPORAL COVERAGE
+- **Date Range:** Start year - End year
+- **Update Frequency:** Daily/Monthly/Annual
+- **Last Updated:** Most recent update date
 
-For License URLs, look for dedicated terms/license pages on the website.
-Prefer official documentation and policy pages over generic homepages.
+## 5. API & TECHNICAL ACCESS
+- **API Endpoint:** URL if available
+- **Data Formats:** CSV, JSON, XML, etc.
+- **Documentation:** Link to API docs
 
-Use your browser automation capabilities to search through multiple pages,
-documentation, metadata sections, and related links to provide comprehensive
-and accurate information. Return the information in a well-structured format."""
+Browse multiple pages to find comprehensive information. Prioritize finding actual data download links."""
 
         result = self.extract_with_automation(query, max_retries=max_retries)
 

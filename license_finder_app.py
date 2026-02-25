@@ -402,6 +402,113 @@ env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path, override=True)
 
 
+def clean_content(content: str) -> str:
+    """Clean content by converting HTML tags to proper markdown."""
+    import re
+    if not content:
+        return content
+    # Replace <br> and <br/> tags with newlines
+    content = re.sub(r'<br\s*/?>', '\n', content, flags=re.IGNORECASE)
+    # Replace multiple consecutive newlines with double newline
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    return content
+
+
+def extract_dataset_links(content: str) -> list:
+    """Extract dataset/data page URLs from content and return as structured links."""
+    import re
+    from urllib.parse import urlparse, parse_qs, unquote
+
+    if not content:
+        return []
+
+    links = []
+    seen_urls = set()
+
+    # First, try to extract from markdown table format: | Name | URL | Description |
+    table_pattern = r'\|\s*([^|]+)\s*\|\s*(https?://[^\s|]+)\s*\|\s*([^|]*)\s*\|'
+    for match in re.finditer(table_pattern, content):
+        name, url, desc = match.groups()
+        url = url.strip().rstrip('.,;:!?')
+        if url not in seen_urls:
+            seen_urls.add(url)
+            parsed = urlparse(url)
+            links.append({
+                'url': url,
+                'domain': parsed.netloc,
+                'title': name.strip() or parsed.netloc,
+                'description': desc.strip(),
+                'dataset_id': None,
+                'category': 'Dataset'
+            })
+
+    # Also extract markdown links: [Title](URL)
+    md_pattern = r'\[([^\]]+)\]\((https?://[^)]+)\)'
+    for match in re.finditer(md_pattern, content):
+        title, url = match.groups()
+        url = url.strip().rstrip('.,;:!?')
+        if url not in seen_urls:
+            seen_urls.add(url)
+            parsed = urlparse(url)
+            url_lower = url.lower()
+            category = 'Dataset'
+            if any(k in url_lower for k in ['license', 'terms', 'legal', 'policy']):
+                category = 'License/Terms'
+            elif any(k in url_lower for k in ['doc', 'guide', 'help', 'api']):
+                category = 'Documentation'
+            links.append({
+                'url': url,
+                'domain': parsed.netloc,
+                'title': title.strip(),
+                'description': '',
+                'dataset_id': None,
+                'category': category
+            })
+
+    # Finally, extract standalone URLs
+    url_pattern = r'(?<!\()(https?://[^\s<>"\')\]\}|]+)'
+    for match in re.finditer(url_pattern, content):
+        url = match.group(1).rstrip('.,;:!?')
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+
+        # Extract dataset ID from params
+        dataset_id = None
+        for key in ['id', 'pid', 'head', 'tableId', 'datasetId']:
+            if key in params:
+                dataset_id = params[key][0]
+                break
+
+        # Get title from path
+        path_parts = [p for p in parsed.path.split('/') if p]
+        title = unquote(path_parts[-1]).replace('-', ' ').replace('_', ' ').title()[:50] if path_parts else parsed.netloc
+
+        # Categorize
+        url_lower = url.lower()
+        category = 'Other'
+        if any(k in url_lower for k in ['license', 'terms', 'legal', 'policy']):
+            category = 'License/Terms'
+        elif any(k in url_lower for k in ['dataset', 'data', 'table', 'statistic', 'download', 'csv', 'api']):
+            category = 'Dataset'
+        elif any(k in url_lower for k in ['doc', 'guide', 'help']):
+            category = 'Documentation'
+
+        links.append({
+            'url': url,
+            'domain': parsed.netloc,
+            'title': title,
+            'description': '',
+            'dataset_id': dataset_id,
+            'category': category
+        })
+
+    return links
+
+
 def format_comprehensive_display(result: dict):
     """Format and display all metadata extraction results in Streamlit."""
     if not result.get("success"):
@@ -409,8 +516,9 @@ def format_comprehensive_display(result: dict):
         return
 
     # Create tabs for different metadata types
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "Summary",
+        "Dataset Links",
         "License",
         "Place/Geographic",
         "Date Range/Temporal",
@@ -424,6 +532,8 @@ def format_comprehensive_display(result: dict):
     with tab1:
         st.subheader("Complete Extracted Information")
         content = result.get("content", "No content available")
+        # Clean content - remove <br> tags
+        content = clean_content(content)
         # Inject Data Commons DCID into geographic coverage section
         country_dcids = get_country_dcids(content)
         if country_dcids and "GEOGRAPHIC COVERAGE" in content.upper():
@@ -434,8 +544,46 @@ def format_comprehensive_display(result: dict):
             content = re.sub(r'(#+\s*\d*\.?\s*GEOGRAPHIC COVERAGE[^\n]*\n)', r'\1' + dcid_line + '\n', content, flags=re.IGNORECASE)
         st.markdown(content)
 
-    # License Tab
+    # Dataset Links Tab
     with tab2:
+        st.subheader("Extracted Dataset Links")
+        content = result.get("content", "")
+        links = extract_dataset_links(content)
+
+        if links:
+            st.success(f"Found {len(links)} links")
+
+            # Group links by category
+            categories = {}
+            for link in links:
+                cat = link['category']
+                if cat not in categories:
+                    categories[cat] = []
+                categories[cat].append(link)
+
+            # Display order
+            order = ['Dataset', 'License/Terms', 'Documentation', 'API', 'Other']
+            for category in order:
+                if category not in categories:
+                    continue
+                cat_links = categories[category]
+
+                with st.expander(f"{category} ({len(cat_links)})", expanded=(category == 'Dataset')):
+                    for link in cat_links:
+                        title = link['title']
+                        if link.get('dataset_id'):
+                            title += f" `{link['dataset_id']}`"
+
+                        st.markdown(f"**[{title}]({link['url']})**")
+                        if link.get('description'):
+                            st.caption(link['description'])
+                        st.caption(f"{link['domain']}")
+                        st.markdown("---")
+        else:
+            st.info("No dataset links found in the extracted content")
+
+    # License Tab
+    with tab3:
         st.subheader("License Information")
         license_data = parsed.get("license", {})
 
@@ -465,7 +613,7 @@ def format_comprehensive_display(result: dict):
             st.info("No license information found in the extracted metadata")
 
     # Place Tab
-    with tab3:
+    with tab4:
         st.subheader("Geographic & Place Information")
         place_data = parsed.get("place", {})
 
@@ -512,7 +660,7 @@ def format_comprehensive_display(result: dict):
             st.info("No place/geographic information found in the extracted metadata")
 
     # Temporal Tab
-    with tab4:
+    with tab5:
         st.subheader("Temporal & Date Range Information")
         temporal_data = parsed.get("temporal", {})
 
@@ -548,7 +696,7 @@ def format_comprehensive_display(result: dict):
             st.info("No temporal/date range information found in the extracted metadata")
 
     # Browser Sessions Tab
-    with tab5:
+    with tab6:
         st.subheader("Browser Automation Details")
 
         if result.get("executed_tools"):
@@ -1201,11 +1349,16 @@ def main():
                     status_container.info(f"Using provided URL...")
                     progress_bar.progress(0.15)
                 else:
-                    # Search for URL
-                    status_container.info(f"Searching for '{source_name}'...")
+                    # Search for URL with retries
+                    status_container.info(f"Searching for '{source_name}' (will retry up to 3 times if needed)...")
                     progress_bar.progress(0.10)
-                    url_result = client.find_source_url(source_name, max_retries=max_retries)
+                    url_result = client.find_source_url(source_name, max_retries=3)
                     url = url_result.get("detected_url")
+
+                    # Show how many attempts were made
+                    attempts = url_result.get("attempts", 1)
+                    if attempts > 1:
+                        status_container.info(f"Found URL after {attempts} attempts")
 
                 # Fallback: use data_url if main url not found
                 if not url and url_result.get("data_url"):
@@ -1215,14 +1368,15 @@ def main():
                     progress_bar.empty()
                     status_container.empty()
 
+                    attempts = url_result.get("attempts", 1)
                     if url_result.get("error"):
-                        st.error(f"API Error: {url_result.get('error')}")
+                        st.error(f"Failed after {attempts} attempts: {url_result.get('error')}")
                     elif url_result.get("content"):
-                        st.warning("Found content but couldn't extract URL:")
+                        st.warning(f"Tried {attempts} times but couldn't extract URL from response:")
                         with st.expander("Show API response"):
                             st.text(url_result.get("content", "")[:2000])
                     else:
-                        st.error(f"Could not find URL for '{source_name}'")
+                        st.error(f"Could not find URL for '{source_name}' after {attempts} attempts")
 
                     st.markdown("**Try:** Enter the URL directly or use simpler search terms")
                     st.stop()
